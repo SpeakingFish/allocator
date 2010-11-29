@@ -52,6 +52,15 @@ DEALINGS IN THE SOFTWARE.
 #ifdef NDEBUG               /* Disable assert checking on release builds */
  #undef DEBUG
 #endif
+
+#ifdef _MSC_VER
+	#pragma warning(disable: 4100) // unreferenced formal parameter
+	#ifndef DEBUG
+		/* Enable full aliasing on MSVC */
+		#pragma optimize("gpty", on)
+	#endif
+#endif
+
 /* The default of 64Kb means we spend too much time kernel-side */
 #ifndef DEFAULT_GRANULARITY
 #define DEFAULT_GRANULARITY (1*1024*1024)
@@ -152,7 +161,8 @@ void nedsetvalue(void *v) THROWSPEC					{ nedpsetvalue(0, v); }
 void * nedmalloc(size_t size) THROWSPEC				{ return nedpmalloc(0, size); }
 void * nedcalloc(size_t no, size_t size) THROWSPEC	{ return nedpcalloc(0, no, size); }
 void * nedrealloc(void *mem, size_t size) THROWSPEC	{ return nedprealloc(0, mem, size); }
-void   nedfree(void *mem) THROWSPEC					{ nedpfree(0, mem); }
+void * nedrecalloc(void *mem, size_t size) THROWSPEC	{ return nedprecalloc(0, mem, size); }
+void   nedfree(void *mem) THROWSPEC					{ if (mem) nedpfree(0, mem); }
 void * nedmemalign(size_t alignment, size_t bytes) THROWSPEC { return nedpmemalign(0, alignment, bytes); }
 #if !NO_MALLINFO
 struct mallinfo nedmallinfo(void) THROWSPEC			{ return nedpmallinfo(0); }
@@ -837,6 +847,17 @@ void * nedprealloc(nedpool *p, void *mem, size_t size) THROWSPEC
 	}
 	return ret;
 }
+
+void * nedprecalloc(nedpool *p, void *mem, size_t size) THROWSPEC
+{
+	void* buf = nedprealloc(p, mem, size);
+	if (NULL != buf)
+	{
+		memset(buf, 0, size);
+	}
+	return buf;
+}
+
 void   nedpfree(nedpool *p, void *mem) THROWSPEC
 {	/* Frees always happen in the mspace they happened in, so skip
 	locking the preferred mspace for this thread */

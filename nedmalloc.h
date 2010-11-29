@@ -1,3 +1,5 @@
+#pragma once
+
 /* nedalloc, an alternative malloc implementation for multiple threads without
 lock contention based on dlmalloc v2.8.3. (C) 2005 Niall Douglas
 
@@ -29,6 +31,7 @@ DEALINGS IN THE SOFTWARE.
 #ifndef NEDMALLOC_H
 #define NEDMALLOC_H
 
+#define NO_MALLINFO 1
 
 /* See malloc.c.h for what each function does.
 
@@ -118,6 +121,7 @@ EXTSPEC void nedsetvalue(void *v) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedmalloc(size_t size) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedcalloc(size_t no, size_t size) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedrealloc(void *mem, size_t size) THROWSPEC;
+EXTSPEC MALLOCATTR void * nedrecalloc(void *mem, size_t size) THROWSPEC;
 EXTSPEC void   nedfree(void *mem) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedmemalign(size_t alignment, size_t bytes) THROWSPEC;
 #if !NO_MALLINFO
@@ -164,6 +168,7 @@ EXTSPEC void neddisablethreadcache(nedpool *p) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedpmalloc(nedpool *p, size_t size) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedpcalloc(nedpool *p, size_t no, size_t size) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedprealloc(nedpool *p, void *mem, size_t size) THROWSPEC;
+EXTSPEC MALLOCATTR void * nedprecalloc(nedpool *p, void *mem, size_t size) THROWSPEC;
 EXTSPEC void   nedpfree(nedpool *p, void *mem) THROWSPEC;
 EXTSPEC MALLOCATTR void * nedpmemalign(nedpool *p, size_t alignment, size_t bytes) THROWSPEC;
 #if !NO_MALLINFO

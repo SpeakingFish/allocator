@@ -1,0 +1,6 @@
+LIBRARY	"nedmalloc"
+EXPORTS
+isNMLeakCheck
+getNMLeakCheckStat
+enableNMLeakCheckForCurrentThread
+disableNMLeakCheckForCurrentThread
