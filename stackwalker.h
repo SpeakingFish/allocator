@@ -1,3 +1,5 @@
+#if defined(LEAK_CHECK)
+
 /**********************************************************************
  * 
  * StackWalker.h
@@ -14,7 +16,7 @@
 
 #include <windows.h>
 #include <list>
-#include "winnedmallocleakcheck.h"
+#include "winnedleakcheck.h"
 
 // special defines for VC5/6 (if no actual PSDK is installed):
 #if _MSC_VER < 1300
@@ -194,4 +196,6 @@ protected:
     c.ContextFlags = contextFlags; \
     RtlCaptureContext(&c); \
 } while(0);
+#endif
+
 #endif

@@ -1,3 +1,5 @@
+#if defined(LEAK_CHECK)
+
 /**********************************************************************
  * 
  * StackWalker.cpp
@@ -26,6 +28,7 @@
 #include <tchar.h>
 #include <stdio.h>
 #pragma comment(lib, "version.lib")  // for "VerQueryValue"
+#pragma warning(disable:4127)	/* conditional expression is constant */
 
 #include "StackWalker.h"
 
@@ -504,6 +507,7 @@ private:
 
   BOOL GetModuleListPSAPI(HANDLE hProcess, DWORD pid)
   {
+    pid;
     // EnumProcessModules()
     typedef BOOL (__stdcall *tEPM)(HANDLE hProcess, HMODULE *lphModule, DWORD cb, LPDWORD lpcbNeeded );
     // GetModuleFileNameEx()
@@ -1424,3 +1428,5 @@ void StackWalker::OnOutput(LPCSTR buffer)
 {
   OutputDebugStringA(buffer);
 }
+
+#endif

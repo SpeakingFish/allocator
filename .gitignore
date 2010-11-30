@@ -1,4 +1,8 @@
 /.svn/
-/export/
+/include/
 /bin/
 /nedmalloc.vcproj.*
+/Win32/
+/x64_leakcheck/
+/Win32_leakcheck/
+/_UpgradeReport_Files/

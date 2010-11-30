@@ -1,0 +1,7 @@
+*.obj
+*.manifest
+BuildLog.htm
+mt.dep
+*.idb
+*.pdb
+nedmalloc.res

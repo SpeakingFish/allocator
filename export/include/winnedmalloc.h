@@ -10,8 +10,6 @@
 #pragma comment(linker, "/include:_ReferenceNM")
 #endif
 
-#include <stdio.h>
-
 extern "C" {
 
 	__declspec(dllimport) int ReferenceNMStub;

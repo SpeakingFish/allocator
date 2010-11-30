@@ -50,7 +50,7 @@
 				AdditionalOptions="-Zm200 -MP2 -w34100 -w34189 -w34100 -w34189"
 				Optimization="4"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="_WINDOWS;UNICODE;WIN32;QT_LARGEFILE_SUPPORT;DEBUG;QT_DLL;QT_THREAD_SUPPORT;BUILD_WINNED_LIB"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,DEBUG,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="1"
@@ -69,7 +69,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,DEBUG,QT_DLL,QT_THREAD_SUPPORT,_DEBUG"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,DEBUG,_DEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -84,7 +84,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="$(IntDir)"
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -148,7 +147,7 @@
 				AdditionalOptions="-Zm200 -MP2 -w34100 -w34189 -w34100 -w34189"
 				Optimization="4"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="_WINDOWS,UNICODE,x64,QT_LARGEFILE_SUPPORT,DEBUG,QT_DLL,QT_THREAD_SUPPORT"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,x64,DEBUG,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="1"
@@ -167,7 +166,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,DEBUG,QT_DLL,QT_THREAD_SUPPORT,_DEBUG"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,DEBUG,_DEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -181,7 +180,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -246,7 +244,7 @@
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT,NDEBUG"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,WIN32,NDEBUG,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -265,7 +263,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,NDEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -279,7 +277,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -345,7 +342,7 @@
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,x64,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT,NDEBUG"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,x64,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -364,7 +361,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,WIN32"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -378,7 +375,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -441,7 +437,7 @@
 				AdditionalOptions="-Zm200 -MP2 -w34100 -w34189 -w34100 -w34189"
 				Optimization="4"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="_WINDOWS;UNICODE;WIN32;QT_LARGEFILE_SUPPORT;DEBUG;QT_DLL;QT_THREAD_SUPPORT;LEAK_CHECK"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,DEBUG,LEAK_CHECK,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="1"
@@ -460,7 +456,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,DEBUG,QT_DLL,QT_THREAD_SUPPORT,_DEBUG"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,DEBUG,_DEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -475,7 +471,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="$(IntDir)"
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -539,7 +534,7 @@
 				AdditionalOptions="-Zm200 -MP2 -w34100 -w34189 -w34100 -w34189"
 				Optimization="4"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="_WINDOWS,UNICODE,x64,QT_LARGEFILE_SUPPORT,DEBUG,QT_DLL,QT_THREAD_SUPPORT"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,x64,DEBUG,LEAK_CHECK,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="1"
@@ -558,7 +553,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,DEBUG,QT_DLL,QT_THREAD_SUPPORT,_DEBUG"
+				PreprocessorDefinitions="_WINDOWS,UNICODE,WIN32,DEBUG,_DEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -572,7 +567,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -637,7 +631,7 @@
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="QT_NO_DEBUG;NDEBUG;_WINDOWS;UNICODE;WIN32;QT_LARGEFILE_SUPPORT;QT_DLL;QT_THREAD_SUPPORT;LEAK_CHECK"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,WIN32,LEAK_CHECK,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -656,7 +650,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,WIN32,NDEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -670,7 +664,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -736,7 +729,7 @@
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories=".\export\include\"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,x64,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT,NDEBUG"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,x64,NDEBUG,LEAK_CHECK,NDEBUG,BUILD_WINNED_LIB,NO_NED_NAMESPACE"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
 				RuntimeLibrary="0"
@@ -755,7 +748,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="QT_NO_DEBUG,NDEBUG,_WINDOWS,UNICODE,WIN32,QT_LARGEFILE_SUPPORT,NDEBUG,QT_DLL,QT_NO_DEBUG,QT_THREAD_SUPPORT"
+				PreprocessorDefinitions="NDEBUG,_WINDOWS,UNICODE,WIN32,NDEBUG"
 				ResourceOutputFileName="$(IntDir)$(InputName).res"
 			/>
 			<Tool
@@ -769,7 +762,6 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories=""
-				ModuleDefinitionFile="exports.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=""
 				SubSystem="2"
@@ -810,19 +802,33 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\exports.def"
-				>
-			</File>
-			<File
 				RelativePath=".\nedmalloc.c"
 				>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						GeneratePreprocessedFile="0"
+						CompileAs="1"
+						ShowIncludes="false"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\stackwalker.cpp"
 				>
 			</File>
 			<File
+				RelativePath=".\winnedleakcheck.cpp"
+				>
+			</File>
+			<File
 				RelativePath="winnedmalloc.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\winnedmisc.cpp"
 				>
 			</File>
 			<File
@@ -848,11 +854,19 @@
 				>
 			</File>
 			<File
+				RelativePath="export\include\winneddefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\export\include\winnedleakcheck.h"
+				>
+			</File>
+			<File
 				RelativePath="export\include\winnedmalloc.h"
 				>
 			</File>
 			<File
-				RelativePath=".\export\include\winnedmallocleakcheck.h"
+				RelativePath=".\export\include\winnedmisc.h"
 				>
 			</File>
 			<File

@@ -1,5 +1,7 @@
 #include "winnedwrappers.h"
 
+#include "nedmalloc.h"
+
 #pragma warning(disable: 4996) // "This function or variable may be unsafe"
 
 static const size_t bufferSize = 32767;
@@ -134,4 +136,14 @@ int winned_wputenv_s(WCHAR* name, WCHAR* value)
 void* nedmemalign_win(size_t bytes, size_t alignment)
 {
 	return nedmemalign(alignment, bytes);
+}
+
+void* nedrecalloc_winned(void *mem, size_t num, size_t size) THROWSPEC
+{
+	void* buf = nedrealloc(mem, num * size);
+	if (NULL != buf)
+	{
+		memset(buf, 0, num * size);
+	}
+	return buf;
 }

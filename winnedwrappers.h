@@ -13,3 +13,4 @@ int winned_putenv_s(const char* name, const char* value);
 int winned_wputenv_s(WCHAR * name, WCHAR * value);
 
 void* nedmemalign_win(size_t bytes, size_t alignment);
+void* nedrecalloc_winned(void *mem, size_t num, size_t size);
