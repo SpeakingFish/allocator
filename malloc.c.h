@@ -1732,7 +1732,12 @@ static FORCEINLINE void* win32mmap(size_t size) {
   if(largepagesize && size >= largepagesize && !(size & (largepagesize-1))) {
     ptr = VirtualAlloc(baseaddress, size, MEM_RESERVE|MEM_COMMIT|MEM_LARGE_PAGES, PAGE_READWRITE);
     if(!ptr) {
-        if (ERROR_PRIVILEGE_NOT_HELD==GetLastError()) largepagesize=0;
+      if (ERROR_PRIVILEGE_NOT_HELD==GetLastError()) {
+        /*fprintf(stderr, "nedmalloc: Failed to allocate large memory pages (does the user running this process have the right to lock pages in memory?). Large pages will not be used.\n");*/
+        OutputDebugStringA("nedmalloc: Failed to allocate large memory pages (does the user running this process have the right to lock pages in memory?). Large pages will not be used.\n");
+        CreateEvent(NULL, FALSE, FALSE, __T("LargePagesDisabled"));
+        largepagesize=0;
+      }
     }
   }
 #endif
@@ -2479,7 +2484,7 @@ struct malloc_chunk {
 typedef struct malloc_chunk  mchunk;
 typedef struct malloc_chunk* mchunkptr;
 typedef struct malloc_chunk* sbinptr;  /* The type of bins of chunks */
-typedef size_t bindex_t;         /* Described below */
+typedef unsigned int bindex_t;         /* Described below */
 typedef unsigned int binmap_t;         /* Described below */
 
 /* ------------------- Chunks sizes and alignments ----------------------- */
