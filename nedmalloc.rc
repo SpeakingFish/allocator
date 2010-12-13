@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,2124,689
- PRODUCTVERSION 1,0,2124,689
+ FILEVERSION 1,0,2173,758
+ PRODUCTVERSION 1,0,2173,758
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,11 +70,11 @@ BEGIN
         BLOCK "000004b0"
         BEGIN
             VALUE "FileDescription", "nedmalloc"
-            VALUE "FileVersion", "1, 0, 2124, 689"
+            VALUE "FileVersion", "1, 0, 2173, 758"
             VALUE "InternalName", "nedmalloc"
             VALUE "OriginalFilename", "nedmalloc.dll"
             VALUE "ProductName", "nedmalloc"
-            VALUE "ProductVersion", "1, 0, 2124, 689"
+            VALUE "ProductVersion", "1, 0, 2173, 758"
         END
     END
     BLOCK "VarFileInfo"

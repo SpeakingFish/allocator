@@ -129,6 +129,7 @@ static void patchIt(Patch* patch)
 #endif
 
 #ifdef ENABLE_USERMODEPAGEALLOCATOR
+#define DebugPrint printf
 #define USERPAGE_NOCOMMIT                  (M2_CUSTOM_FLAGS_BEGIN<<1)
 extern "C"
 {
@@ -194,26 +195,17 @@ static SIZE_T WINAPI VirtualQuery_winned(LPVOID lpAddress, PMEMORY_BASIC_INFORMA
 
 static Patch rlsPatches[] = 
 {
-	// operator new, new[], delete, delete[].
-#ifdef x64
-	{"??2@YAPEAX_K@Z",  (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc),       0},
-	{"??3@YAXPEAX@Z",   (FARPROC) LEAK_CHECK_WRAPPER(nedfree),         0},
-	#ifdef DEBUG
-		{"??_U@YAPEAX_K@Z", (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc),       0},
-		{"??_V@YAXPEAX@Z",  (FARPROC) LEAK_CHECK_WRAPPER(nedfree),         0},
-	#endif
-#else
-	{"??2@YAPAXI@Z",    (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
-	{"??3@YAXPAX@Z",    (FARPROC) LEAK_CHECK_WRAPPER(nedfree),   0},
-	#ifdef DEBUG
-		{"??_U@YAPAXI@Z",   (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
-		{"??_V@YAXPAX@Z",   (FARPROC) LEAK_CHECK_WRAPPER(nedfree),   0},
+#ifdef DEBUG
+	// operator new, delete - in Debug msvcr does not use malloc/free functions
+	// for allocations/deallocations, so we have to patch them.
+	#ifdef x64
+		{"??2@YAPEAX_K@Z",  (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
+		{"??3@YAXPEAX@Z",   (FARPROC) LEAK_CHECK_WRAPPER(nedfree),   0},
+	#else
+		{"??2@YAPAXI@Z",    (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
+		{"??3@YAXPAX@Z",    (FARPROC) LEAK_CHECK_WRAPPER(nedfree),   0},
 	#endif
 #endif
-
-	// the nothrow variants new, new[].
-	{"??2@YAPAXIABUnothrow_t@std@@@Z",  (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
-	{"??_U@YAPAXIABUnothrow_t@std@@@Z", (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
 
 	// C allocator functions
 	{"_msize",      (FARPROC) nedmemsize,  0},
