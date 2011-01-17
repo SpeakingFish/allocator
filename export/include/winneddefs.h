@@ -18,6 +18,22 @@
 
 #define REALLOC_ZERO_BYTES_FREES 1
 
+#define FORCE_OUR_HEAP_DETECTION
+#ifdef FORCE_OUR_HEAP_DETECTION
+	#define ENABLE_FAST_HEAP_DETECTION
+#endif
+
+#define MAXIMUM_THREADS_COUNT 256
+
+// try to optimize
+// #define DEFAULTMAXTHREADSINPOOL 1
+// #define MAXTHREADSINPOOL 1
+// #define THREADCACHEMAXCACHES 2048
+// #define THREADCACHEMAXFREESPACE (16 * 1024 * 1024)
+// #define THREADCACHEMAX (32 * 1024)
+// #define THREADCACHEMAXBINS ((10 + 5) - 4)
+
+
 // now disabled as unstable
 // #define THROWSPEC throw()
 // #define ONLY_MSPACES 1
@@ -25,16 +41,27 @@
 // #define ENABLE_USERMODEPAGEALLOCATOR 1
 
 /// \brief Returns information about a memory pool
-/// it is same as nedmallinfo
-struct NedMallInfo { 
-	size_t arena;    ///< non-mmapped space allocated from system
-	size_t ordblks;  ///< number of free chunks
-	size_t smblks;   ///< always 0
-	size_t hblks;    ///< always 0
-	size_t hblkhd;   ///< space in mmapped regions
-	size_t usmblks;  ///< maximum total allocated space
-	size_t fsmblks;  ///< always 0
-	size_t uordblks; ///< total allocated space
-	size_t fordblks; ///< total free space
-	size_t keepcost; ///< releasable (via malloc_trim) space
+struct NedSummaryInfo
+{
+	int threadId;
+	__int64 totalAllocatedBytes;
+	__int64 totalAllocationsCount;
+	__int64 totalReallocatedBytesDelta;
+	__int64 totalReallocationsCount;
+	__int64 totalDeallocatedBytes;
+	__int64 totalDeallocationsCount;
+};
+
+struct NedStatistics
+{
+	struct NedSummaryInfo nedInfo;
+	struct NedSummaryInfo threadsInfo[MAXIMUM_THREADS_COUNT];
+
+	size_t maxAllocated;     ///< maximum total allocated space
+	size_t currentAllocated; ///< total allocated space
+	size_t currentFree;      ///< total free space
+	size_t mayBeRelease;     ///< releasable (via malloc_trim) space
+	size_t allocated;        ///< non-mmapped space allocated from system
+	size_t mmaped;           ///< space in mmapped regions
+	size_t freeChunks;       ///< number of free chunks
 };

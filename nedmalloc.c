@@ -181,7 +181,7 @@ extern void *userpage_realloc(void *mem, size_t oldsize, size_t newsize, int fla
 #endif
 /* The maximum number of threadcaches which can be allocated */
 #ifndef THREADCACHEMAXCACHES
-#define THREADCACHEMAXCACHES 256
+#define THREADCACHEMAXCACHES MAXIMUM_THREADS_COUNT
 #endif
 #ifndef THREADCACHEMAXBINS
 #if 0
@@ -467,6 +467,7 @@ static NEDMALLOCNOALIASATTR mstate nedblkmstate(void *RESTRICT mem) THROWSPEC
 		return 0;
 #elif USE_ALLOCATOR==1
 #ifdef ENABLE_FAST_HEAP_DETECTION
+#ifndef FORCE_OUR_HEAP_DETECTION
 #ifdef WIN32
 		/*  On Windows for RELEASE both x86 and x64 the NT heap precedes each block with an eight byte header
 			which looks like:
@@ -493,6 +494,7 @@ static NEDMALLOCNOALIASATTR mstate nedblkmstate(void *RESTRICT mem) THROWSPEC
 		{	/* This is likely a NT heap block */
 			return 0;
 		}
+		else
 #endif
 #ifdef __linux__
 		/* On Linux glibc uses ptmalloc2 (really dlmalloc) just as we do, but prev_foot contains rubbish
@@ -507,9 +509,8 @@ static NEDMALLOCNOALIASATTR mstate nedblkmstate(void *RESTRICT mem) THROWSPEC
 			return fm;
 		else
 			return 0;
-		if(1) { }
 #endif
-		else
+#endif // FORCE_OUR_HEAP_DETECTION
 		{
 			mchunkptr p=mem2chunk(mem);
 			mstate fm=get_mstate_for(p);
@@ -756,6 +757,9 @@ typedef struct threadcache_t
 	int mymspace;						/* Last mspace entry this thread used */
 	long threadid;
 	unsigned int mallocs, frees, successes;
+#ifdef NEDMALLOC_USE_STATISTICS
+	struct NedSummaryInfo info;
+#endif
 #if ENABLE_LOGGING
 	logentry *logentries, *logentriesptr, *logentriesend;
 #endif
@@ -1311,6 +1315,17 @@ static NOINLINE threadcache *AllocCache(nedpool *RESTRICT p) THROWSPEC
 		(long)(size_t)CURRENT_THREAD;
 #else
 		1;
+#endif
+#ifdef NEDMALLOC_USE_STATISTICS
+	{
+		tc->info.threadId = tc->threadid;
+		tc->info.totalAllocatedBytes = 0;
+		tc->info.totalAllocationsCount = 0;
+		tc->info.totalReallocatedBytesDelta = 0;
+		tc->info.totalReallocationsCount = 0;
+		tc->info.totalDeallocatedBytes = 0;
+		tc->info.totalDeallocationsCount = 0;
+	}
 #endif
 	for(end=0; p->m[end]; end++);
 	tc->mymspace=abs(tc->threadid) % end;
@@ -1890,6 +1905,13 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size
 	int mymspace;
 	GetThreadCache(&p, &tc, &mymspace, &size);
 #if THREADCACHEMAX
+#ifdef NEDMALLOC_USE_STATISTICS
+	if (tc)
+	{
+		tc->info.totalAllocatedBytes += size;
+		tc->info.totalAllocationsCount += 1;
+	}
+#endif
 	if(alignment<=MALLOC_ALIGNMENT && !(flags & NM_FLAGS_MASK) && tc && size<=THREADCACHEMAX)
 	{	/* Use the thread cache */
 		if((ret=threadcache_malloc(p, tc, &size)))
@@ -1941,6 +1963,14 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 		return mem;
 	GetThreadCache(&p, &tc, &mymspace, &size);
 #if THREADCACHEMAX
+#ifdef NEDMALLOC_USE_STATISTICS
+	if (tc)
+	{
+		tc->info.totalReallocatedBytesDelta += size;
+		tc->info.totalReallocatedBytesDelta -= memsize;
+		tc->info.totalReallocationsCount += 1;
+	}
+#endif
 	if(alignment<=MALLOC_ALIGNMENT && !(flags & NM_FLAGS_MASK) && tc && size && size<=THREADCACHEMAX)
 	{	/* Use the thread cache */
 		if((ret=threadcache_malloc(p, tc, &size)))
@@ -1995,6 +2025,13 @@ NEDMALLOCNOALIASATTR void   nedpfree2(nedpool *p, void *mem, unsigned flags) THR
 	}
 	GetThreadCache(&p, &tc, &mymspace, 0);
 #if THREADCACHEMAX
+#ifdef NEDMALLOC_USE_STATISTICS
+	if (tc)
+	{
+		tc->info.totalDeallocatedBytes += memsize;
+		tc->info.totalDeallocationsCount += 1;
+	}
+#endif
 	if(mem && tc && memsize>=sizeof(threadcacheblk) && memsize<=(THREADCACHEMAX+CHUNK_OVERHEAD))
 	{
 		threadcache_free(p, tc, mymspace, mem, memsize, isforeign);
@@ -2046,6 +2083,7 @@ struct nedmallinfo nedpmallinfo(nedpool *p) THROWSPEC
 {
 	int n;
 	struct nedmallinfo ret={0};
+	int retThreadInfoIndex = 0;
 	if(!p) { p=&syspool; if(!syspool.threads) InitPool(&syspool, 0, -1); }
 	for(n=0; p->m[n]; n++)
 	{
@@ -2060,6 +2098,22 @@ struct nedmallinfo nedpmallinfo(nedpool *p) THROWSPEC
 		ret.keepcost+=t.keepcost;
 #endif
 	}
+
+#ifdef NEDMALLOC_USE_STATISTICS
+	for(n = 0; n < MAXIMUM_THREADS_COUNT; ++n)
+	{
+		if (NULL != p->caches[n])
+		{
+			ret.info[retThreadInfoIndex] = p->caches[n]->info;
+			retThreadInfoIndex += 1;
+		}
+		else
+		{
+			ret.info[retThreadInfoIndex].threadId = -1;
+		}
+	}
+#endif
+
 	return ret;
 }
 int    nedpmallopt(nedpool *p, int parno, int value) THROWSPEC

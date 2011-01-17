@@ -266,6 +266,9 @@ struct nedmallinfo {
   size_t uordblks; /*!< total allocated space */
   size_t fordblks; /*!< total free space */
   size_t keepcost; /*!< releasable (via malloc_trim) space */
+#ifdef NEDMALLOC_USE_STATISTICS
+  struct NedSummaryInfo info[MAXIMUM_THREADS_COUNT];
+#endif
 };
 #if defined(__cplusplus)
 }

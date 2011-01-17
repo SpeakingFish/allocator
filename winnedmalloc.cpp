@@ -288,6 +288,12 @@ extern "C"
 		hinstDLL;
 		lpreserved;
 
+		static bool noNed = (NULL != winned_getenv("NEDMALLOC_DISABLE_PATCHING"));
+		if (noNed)
+		{
+			return TRUE;
+		}
+
 #ifdef ENABLE_USERMODEPAGEALLOCATOR
 		if(DLL_PROCESS_ATTACH == fdwReason)
 		{
