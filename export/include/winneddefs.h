@@ -56,7 +56,10 @@ struct NedStatistics
 {
 	struct NedSummaryInfo nedInfo;
 	struct NedSummaryInfo threadsInfo[MAXIMUM_THREADS_COUNT];
+};
 
+struct NedMallInfo
+{
 	size_t maxAllocated;     ///< maximum total allocated space
 	size_t currentAllocated; ///< total allocated space
 	size_t currentFree;      ///< total free space
