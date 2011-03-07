@@ -6,3 +6,8 @@
 /x64_leakcheck/
 /Win32_leakcheck/
 /_UpgradeReport_Files/
+*pdb/*
+/UpgradeLog.XML
+/*.i
+/*.ncb
+/*.suo
