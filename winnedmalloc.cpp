@@ -288,7 +288,7 @@ extern "C"
 		hinstDLL;
 		lpreserved;
 
-		static bool noNed = (NULL != winned_getenv("NEDMALLOC_DISABLE_PATCHING"));
+		static const bool noNed = (NULL != winned_getenv("NEDMALLOC_DISABLE_PATCHING"));
 		if (noNed)
 		{
 			return TRUE;

@@ -12,5 +12,9 @@ int winned_wputenv(WCHAR * str);
 int winned_putenv_s(const char* name, const char* value);
 int winned_wputenv_s(WCHAR * name, WCHAR * value);
 
+#ifdef BUILD_WINNED_LIB
+
 void* nedmemalign_win(size_t bytes, size_t alignment);
 void* nedrecalloc_winned(void *mem, size_t num, size_t size);
+
+#endif

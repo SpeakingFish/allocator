@@ -1,7 +1,7 @@
 /.svn/
 /include/
 /bin/
-/nedmalloc.vcproj.*
+/*.vcproj.*
 /Win32/
 /x64_leakcheck/
 /Win32_leakcheck/
@@ -11,3 +11,4 @@
 /*.i
 /*.ncb
 /*.suo
+/*.aps

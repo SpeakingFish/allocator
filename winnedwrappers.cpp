@@ -133,6 +133,8 @@ int winned_wputenv_s(WCHAR* name, WCHAR* value)
 	return 0;
 } 
 
+#ifdef BUILD_WINNED_LIB
+
 void* nedmemalign_win(size_t bytes, size_t alignment)
 {
 	return nedmemalign(alignment, bytes);
@@ -147,3 +149,5 @@ void* nedrecalloc_winned(void *mem, size_t num, size_t size) THROWSPEC
 	}
 	return buf;
 }
+
+#endif

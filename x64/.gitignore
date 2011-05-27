@@ -4,4 +4,4 @@ BuildLog.htm
 mt.dep
 *.idb
 *.pdb
-nedmalloc.res
+nedmalloc*.res

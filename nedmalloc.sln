@@ -3,6 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nedmalloc", "nedmalloc.vcproj", "{EC698E3F-A1CA-310A-BD14-1B668D707156}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nedmallocwrapper", "nedmallocwrapper.vcproj", "{94F115C4-B6D2-4C6E-832E-4999C50D79DB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EC698E3F-A1CA-310A-BD14-1B668D707156} = {EC698E3F-A1CA-310A-BD14-1B668D707156}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -31,6 +36,22 @@ Global
 		{EC698E3F-A1CA-310A-BD14-1B668D707156}.ReleaseLeakCheck|Win32.Build.0 = ReleaseLeakCheck|Win32
 		{EC698E3F-A1CA-310A-BD14-1B668D707156}.ReleaseLeakCheck|x64.ActiveCfg = ReleaseLeakCheck|x64
 		{EC698E3F-A1CA-310A-BD14-1B668D707156}.ReleaseLeakCheck|x64.Build.0 = ReleaseLeakCheck|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|Win32.Build.0 = Debug|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|x64.ActiveCfg = Debug|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|x64.Build.0 = Debug|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.DebugLeakCheck|Win32.ActiveCfg = DebugLeakCheck|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.DebugLeakCheck|Win32.Build.0 = DebugLeakCheck|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.DebugLeakCheck|x64.ActiveCfg = DebugLeakCheck|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.DebugLeakCheck|x64.Build.0 = DebugLeakCheck|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|Win32.ActiveCfg = Release|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|Win32.Build.0 = Release|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|x64.ActiveCfg = Release|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|x64.Build.0 = Release|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.ReleaseLeakCheck|Win32.ActiveCfg = ReleaseLeakCheck|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.ReleaseLeakCheck|Win32.Build.0 = ReleaseLeakCheck|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.ReleaseLeakCheck|x64.ActiveCfg = ReleaseLeakCheck|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.ReleaseLeakCheck|x64.Build.0 = ReleaseLeakCheck|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
