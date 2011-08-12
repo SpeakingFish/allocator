@@ -599,17 +599,21 @@ NEDMALLOCNOALIASATTR size_t nedblksize(int *RESTRICT isforeign, void *RESTRICT m
 			}
 		}
 #elif USE_ALLOCATOR==1
+#ifndef FORCE_OUR_HEAP_DETECTION
 		if((flags & NM_SKIP_TOLERANCE_CHECKS) || nedblkmstate(mem))
+#endif
 		{
 			mchunkptr p=mem2chunk(mem);
 			if(isforeign) *isforeign=0;
 			return chunksize(p)-overhead_for(p);
 		}
+#ifndef FORCE_OUR_HEAP_DETECTION
 #ifdef DEBUG
 		else
 		{
 			int a=1; /* Set breakpoints here if needed */
 		}
+#endif
 #endif
 #endif
 #if defined(ENABLE_TOLERANT_NEDMALLOC) || USE_ALLOCATOR==0
@@ -1907,6 +1911,7 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size
 	void *ret=0;
 	threadcache *tc;
 	int mymspace;
+
 	GetThreadCache(&p, &tc, &mymspace, &size);
 #if THREADCACHEMAX
 	if(alignment<=MALLOC_ALIGNMENT && !(flags & NM_FLAGS_MASK) && tc && size<=THREADCACHEMAX)
@@ -1928,10 +1933,14 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size
 	}
 	LogOperation(tc, p, LOGENTRY_MALLOC, mymspace, size, 0, alignment, flags, ret);
 #ifdef NEDMALLOC_USE_STATISTICS
-	if (tc)
+	if (tc && ret)
 	{
-		tc->info.totalAllocatedBytes += nedblksize(0, ret, 0);
+		tc->info.totalAllocatedBytes += nedblksize(0, ret, flags);
 		tc->info.totalAllocationsCount += 1;
+	}
+	else
+	{
+		assert(0);
 	}
 #endif
 	return ret;
@@ -1943,9 +1952,12 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 	int mymspace, isforeign=1;
 	size_t memsize;
 
-	if(!mem) return nedpmalloc2(p, size, alignment, flags);
+	if(!mem)
+	{
+		return nedpmalloc2(p, size, alignment, flags);
+	}
 #if REALLOC_ZERO_BYTES_FREES
-	if(!size)
+	if (!size)
 	{
 		nedpfree2(p, mem, flags);
 		return 0;
@@ -2001,11 +2013,15 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 	}
 	LogOperation(tc, p, LOGENTRY_REALLOC, mymspace, size, mem, alignment, flags, ret);
 #ifdef NEDMALLOC_USE_STATISTICS
-	if (tc)
+	if (tc && ret)
 	{
-		tc->info.totalReallocatedBytesDelta += nedblksize(0, ret, 0);
+		tc->info.totalReallocatedBytesDelta += nedblksize(0, ret, flags);
 		tc->info.totalReallocatedBytesDelta -= memsize;
 		tc->info.totalReallocationsCount += 1;
+	}
+	else
+	{
+		assert(0);
 	}
 #endif
 	return ret;
@@ -2036,6 +2052,10 @@ NEDMALLOCNOALIASATTR void   nedpfree2(nedpool *p, void *mem, unsigned flags) THR
 	{
 		tc->info.totalDeallocatedBytes += memsize;
 		tc->info.totalDeallocationsCount += 1;
+	}
+	else
+	{
+		assert(0);
 	}
 #endif
 #if THREADCACHEMAX

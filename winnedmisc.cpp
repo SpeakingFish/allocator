@@ -26,6 +26,14 @@ struct NedStatistics nedStatistics(void)
 
 	struct nedstats info = nedstats();
 
+	result.nedInfo.threadId = -1;
+	result.nedInfo.totalAllocatedBytes = 0;
+	result.nedInfo.totalAllocationsCount = 0;
+	result.nedInfo.totalReallocatedBytesDelta = 0;
+	result.nedInfo.totalReallocationsCount = 0;
+	result.nedInfo.totalDeallocatedBytes = 0;
+	result.nedInfo.totalDeallocationsCount = 0;
+
 	for (int i = 0; i < MAXIMUM_THREADS_COUNT; ++i)
 	{
 		result.threadsInfo[i] = info.info[i];
