@@ -266,10 +266,12 @@ struct nedmallinfo {
   size_t uordblks; /*!< total allocated space */
   size_t fordblks; /*!< total free space */
   size_t keepcost; /*!< releasable (via malloc_trim) space */
-#ifdef NEDMALLOC_USE_STATISTICS
-  struct NedSummaryInfo info[MAXIMUM_THREADS_COUNT];
-#endif
 };
+#ifdef NEDMALLOC_USE_STATISTICS
+struct nedstats {
+	struct NedSummaryInfo info[MAXIMUM_THREADS_COUNT];
+};
+#endif
 #if defined(__cplusplus)
 }
 #endif
@@ -496,6 +498,11 @@ NEDMALLOCEXTSPEC NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_cal
 /*! \brief Equivalent to nedpindependent_comalloc((nedpool *) 0, elems, sizes, chunks) */
 NEDMALLOCEXTSPEC NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_comalloc(size_t elems, size_t *sizes, void **chunks) THROWSPEC;
 
+#ifdef NEDMALLOC_USE_STATISTICS
+	/*! \brief Equivalent to nedpstats((nedpool *) 0) */
+	NEDMALLOCEXTSPEC NEDMALLOCNOALIASATTR struct nedstats nedstats(void) THROWSPEC;
+#endif
+
 /*! \brief Destroys the system memory pool used by the functions above.
 
 Useful for when you have nedmalloc in a DLL you're about to unload.
@@ -607,6 +614,12 @@ NEDMALLOCEXTSPEC int    nedpmalloc_trim(nedpool *p, size_t pad) THROWSPEC;
 NEDMALLOCEXTSPEC void   nedpmalloc_stats(nedpool *p) THROWSPEC;
 /*! \brief Returns how much memory is currently in use by the memory pool */
 NEDMALLOCEXTSPEC size_t nedpmalloc_footprint(nedpool *p) THROWSPEC;
+
+#ifdef NEDMALLOC_USE_STATISTICS
+	/*! \brief Returns extended information about the memory pool */
+	NEDMALLOCEXTSPEC struct nedstats nedpstats(nedpool *p) THROWSPEC;
+#endif
+
 /*! \brief Returns a series of guaranteed consecutive cleared memory allocations.
 
   independent_calloc is similar to calloc, but instead of returning a

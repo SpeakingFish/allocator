@@ -16,7 +16,7 @@
 
 #define ENABLE_LARGE_PAGES 1
 
-#define REALLOC_ZERO_BYTES_FREES 1
+#define REALLOC_ZERO_BYTES_FREES 0
 
 #define FORCE_OUR_HEAP_DETECTION
 #ifdef FORCE_OUR_HEAP_DETECTION
@@ -56,7 +56,10 @@ struct NedStatistics
 {
 	struct NedSummaryInfo nedInfo;
 	struct NedSummaryInfo threadsInfo[MAXIMUM_THREADS_COUNT];
+};
 
+struct NedMallInfo
+{
 	size_t maxAllocated;     ///< maximum total allocated space
 	size_t currentAllocated; ///< total allocated space
 	size_t currentFree;      ///< total free space

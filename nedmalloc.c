@@ -599,17 +599,21 @@ NEDMALLOCNOALIASATTR size_t nedblksize(int *RESTRICT isforeign, void *RESTRICT m
 			}
 		}
 #elif USE_ALLOCATOR==1
+#ifndef FORCE_OUR_HEAP_DETECTION
 		if((flags & NM_SKIP_TOLERANCE_CHECKS) || nedblkmstate(mem))
+#endif
 		{
 			mchunkptr p=mem2chunk(mem);
 			if(isforeign) *isforeign=0;
 			return chunksize(p)-overhead_for(p);
 		}
+#ifndef FORCE_OUR_HEAP_DETECTION
 #ifdef DEBUG
 		else
 		{
 			int a=1; /* Set breakpoints here if needed */
 		}
+#endif
 #endif
 #endif
 #if defined(ENABLE_TOLERANT_NEDMALLOC) || USE_ALLOCATOR==0
@@ -636,6 +640,10 @@ void   nedmalloc_stats() THROWSPEC																								{ nedpmalloc_stats((ne
 NEDMALLOCNOALIASATTR size_t nedmalloc_footprint() THROWSPEC																		{ return nedpmalloc_footprint((nedpool *) 0); }
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_calloc(size_t elemsno, size_t elemsize, void **chunks) THROWSPEC	{ return nedpindependent_calloc((nedpool *) 0, elemsno, elemsize, chunks); }
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_comalloc(size_t elems, size_t *sizes, void **chunks) THROWSPEC		{ return nedpindependent_comalloc((nedpool *) 0, elems, sizes, chunks); }
+
+#ifdef NEDMALLOC_USE_STATISTICS
+	NEDMALLOCNOALIASATTR struct nedstats nedstats(void) THROWSPEC																    { return nedpstats((nedpool *) 0); }
+#endif
 
 #ifdef WIN32
 typedef unsigned __int64 timeCount;
@@ -1903,15 +1911,9 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size
 	void *ret=0;
 	threadcache *tc;
 	int mymspace;
+
 	GetThreadCache(&p, &tc, &mymspace, &size);
 #if THREADCACHEMAX
-#ifdef NEDMALLOC_USE_STATISTICS
-	if (tc)
-	{
-		tc->info.totalAllocatedBytes += size;
-		tc->info.totalAllocationsCount += 1;
-	}
-#endif
 	if(alignment<=MALLOC_ALIGNMENT && !(flags & NM_FLAGS_MASK) && tc && size<=THREADCACHEMAX)
 	{	/* Use the thread cache */
 		if((ret=threadcache_malloc(p, tc, &size)))
@@ -1930,6 +1932,17 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size
 			LogOperation(tc, p, LOGENTRY_POOL_MALLOC, mymspace, size, 0, alignment, flags, ret);
 	}
 	LogOperation(tc, p, LOGENTRY_MALLOC, mymspace, size, 0, alignment, flags, ret);
+#ifdef NEDMALLOC_USE_STATISTICS
+	if (tc && ret)
+	{
+		tc->info.totalAllocatedBytes += nedblksize(0, ret, flags);
+		tc->info.totalAllocationsCount += 1;
+	}
+	else
+	{
+		assert(0);
+	}
+#endif
 	return ret;
 }
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem, size_t size, size_t alignment, unsigned flags) THROWSPEC
@@ -1938,9 +1951,13 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 	threadcache *tc;
 	int mymspace, isforeign=1;
 	size_t memsize;
-	if(!mem) return nedpmalloc2(p, size, alignment, flags);
+
+	if(!mem)
+	{
+		return nedpmalloc2(p, size, alignment, flags);
+	}
 #if REALLOC_ZERO_BYTES_FREES
-	if(!size)
+	if (!size)
 	{
 		nedpfree2(p, mem, flags);
 		return 0;
@@ -1963,14 +1980,6 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 		return mem;
 	GetThreadCache(&p, &tc, &mymspace, &size);
 #if THREADCACHEMAX
-#ifdef NEDMALLOC_USE_STATISTICS
-	if (tc)
-	{
-		tc->info.totalReallocatedBytesDelta += size;
-		tc->info.totalReallocatedBytesDelta -= memsize;
-		tc->info.totalReallocationsCount += 1;
-	}
-#endif
 	if(alignment<=MALLOC_ALIGNMENT && !(flags & NM_FLAGS_MASK) && tc && size && size<=THREADCACHEMAX)
 	{	/* Use the thread cache */
 		if((ret=threadcache_malloc(p, tc, &size)))
@@ -1998,9 +2007,23 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 		locking the preferred mspace for this thread */
 		ret=CallRealloc(p->m[mymspace], mem, isforeign, memsize, size, alignment, flags);
 		if(ret)
+		{
 			LogOperation(tc, p, LOGENTRY_POOL_REALLOC, mymspace, size, mem, alignment, flags, ret);
+		}
 	}
 	LogOperation(tc, p, LOGENTRY_REALLOC, mymspace, size, mem, alignment, flags, ret);
+#ifdef NEDMALLOC_USE_STATISTICS
+	if (tc && ret)
+	{
+		tc->info.totalReallocatedBytesDelta += nedblksize(0, ret, flags);
+		tc->info.totalReallocatedBytesDelta -= memsize;
+		tc->info.totalReallocationsCount += 1;
+	}
+	else
+	{
+		assert(0);
+	}
+#endif
 	return ret;
 }
 NEDMALLOCNOALIASATTR void   nedpfree2(nedpool *p, void *mem, unsigned flags) THROWSPEC
@@ -2024,14 +2047,18 @@ NEDMALLOCNOALIASATTR void   nedpfree2(nedpool *p, void *mem, unsigned flags) THR
 		abort();
 	}
 	GetThreadCache(&p, &tc, &mymspace, 0);
-#if THREADCACHEMAX
 #ifdef NEDMALLOC_USE_STATISTICS
 	if (tc)
 	{
 		tc->info.totalDeallocatedBytes += memsize;
 		tc->info.totalDeallocationsCount += 1;
 	}
+	else
+	{
+		assert(0);
+	}
 #endif
+#if THREADCACHEMAX
 	if(mem && tc && memsize>=sizeof(threadcacheblk) && memsize<=(THREADCACHEMAX+CHUNK_OVERHEAD))
 	{
 		threadcache_free(p, tc, mymspace, mem, memsize, isforeign);
@@ -2083,7 +2110,6 @@ struct nedmallinfo nedpmallinfo(nedpool *p) THROWSPEC
 {
 	int n;
 	struct nedmallinfo ret={0};
-	int retThreadInfoIndex = 0;
 	if(!p) { p=&syspool; if(!syspool.threads) InitPool(&syspool, 0, -1); }
 	for(n=0; p->m[n]; n++)
 	{
@@ -2099,7 +2125,17 @@ struct nedmallinfo nedpmallinfo(nedpool *p) THROWSPEC
 #endif
 	}
 
+	return ret;
+}
+
 #ifdef NEDMALLOC_USE_STATISTICS
+struct nedstats nedpstats(nedpool *p) THROWSPEC
+{
+	int n;
+	struct nedstats ret={0};
+	int retThreadInfoIndex = 0;
+	if(!p) { p=&syspool; if(!syspool.threads) InitPool(&syspool, 0, -1); }
+
 	for(n = 0; n < MAXIMUM_THREADS_COUNT; ++n)
 	{
 		if (NULL != p->caches[n])
@@ -2112,10 +2148,11 @@ struct nedmallinfo nedpmallinfo(nedpool *p) THROWSPEC
 			ret.info[retThreadInfoIndex].threadId = -1;
 		}
 	}
-#endif
 
 	return ret;
 }
+#endif
+
 int    nedpmallopt(nedpool *p, int parno, int value) THROWSPEC
 {
 #if USE_ALLOCATOR==1
