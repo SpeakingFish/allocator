@@ -1,5 +1,7 @@
 #pragma once
 
+#include "crtdefs.h"
+
 #if defined(BUILD_WINNED_LIB)
 #define WINNED_EXPORT __declspec(dllexport)
 #else
@@ -44,6 +46,7 @@
 struct NedSummaryInfo
 {
 	int threadId;
+	ptrdiff_t poolId;
 	__int64 totalAllocatedBytes;
 	__int64 totalAllocationsCount;
 	__int64 totalReallocatedBytesDelta;

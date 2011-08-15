@@ -641,10 +641,6 @@ NEDMALLOCNOALIASATTR size_t nedmalloc_footprint() THROWSPEC																		{ r
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_calloc(size_t elemsno, size_t elemsize, void **chunks) THROWSPEC	{ return nedpindependent_calloc((nedpool *) 0, elemsno, elemsize, chunks); }
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_comalloc(size_t elems, size_t *sizes, void **chunks) THROWSPEC		{ return nedpindependent_comalloc((nedpool *) 0, elems, sizes, chunks); }
 
-#ifdef NEDMALLOC_USE_STATISTICS
-	NEDMALLOCNOALIASATTR struct nedstats nedstats(void) THROWSPEC																    { return nedpstats((nedpool *) 0); }
-#endif
-
 #ifdef WIN32
 typedef unsigned __int64 timeCount;
 static timeCount GetTimestamp()
@@ -1326,13 +1322,9 @@ static NOINLINE threadcache *AllocCache(nedpool *RESTRICT p) THROWSPEC
 #endif
 #ifdef NEDMALLOC_USE_STATISTICS
 	{
+		memset(&tc->info, 0, sizeof(struct NedSummaryInfo));
 		tc->info.threadId = tc->threadid;
-		tc->info.totalAllocatedBytes = 0;
-		tc->info.totalAllocationsCount = 0;
-		tc->info.totalReallocatedBytesDelta = 0;
-		tc->info.totalReallocationsCount = 0;
-		tc->info.totalDeallocatedBytes = 0;
-		tc->info.totalDeallocationsCount = 0;
+		tc->info.poolId = (ptrdiff_t)p;
 	}
 #endif
 	for(end=0; p->m[end]; end++);
@@ -1906,6 +1898,44 @@ static FORCEINLINE void GetThreadCache(nedpool *RESTRICT *RESTRICT p, threadcach
 #endif
 }
 
+#ifdef NEDMALLOC_USE_STATISTICS
+
+void nedpstats(struct nedstats_t* dest, nedpool *p) THROWSPEC
+{
+	int n;
+	int retThreadInfoIndex = 0;
+	if(!p) { p=&syspool; if(!syspool.threads) InitPool(&syspool, 0, -1); }
+
+	for(n = 0; n < MAXIMUM_THREADS_COUNT; ++n)
+	{
+		if (NULL != p->caches[n])
+		{
+			dest->info[retThreadInfoIndex] = p->caches[n]->info;
+			retThreadInfoIndex += 1;
+		}
+		else
+		{
+			dest->info[retThreadInfoIndex].threadId = -1;
+		}
+	}
+}
+
+NEDMALLOCNOALIASATTR void nedstats(struct nedstats_t* dest) THROWSPEC
+{
+	nedpool** pools = nedpoollist();
+	nedpstats(dest, NULL);
+
+	if (NULL != pools)
+	{
+		while (NULL != *pools)
+		{
+			nedpstats(dest, *pools);
+			pools += 1;
+		}
+	}
+}
+#endif
+
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size, size_t alignment, unsigned flags) THROWSPEC
 {
 	void *ret=0;
@@ -2127,31 +2157,6 @@ struct nedmallinfo nedpmallinfo(nedpool *p) THROWSPEC
 
 	return ret;
 }
-
-#ifdef NEDMALLOC_USE_STATISTICS
-struct nedstats nedpstats(nedpool *p) THROWSPEC
-{
-	int n;
-	struct nedstats ret={0};
-	int retThreadInfoIndex = 0;
-	if(!p) { p=&syspool; if(!syspool.threads) InitPool(&syspool, 0, -1); }
-
-	for(n = 0; n < MAXIMUM_THREADS_COUNT; ++n)
-	{
-		if (NULL != p->caches[n])
-		{
-			ret.info[retThreadInfoIndex] = p->caches[n]->info;
-			retThreadInfoIndex += 1;
-		}
-		else
-		{
-			ret.info[retThreadInfoIndex].threadId = -1;
-		}
-	}
-
-	return ret;
-}
-#endif
 
 int    nedpmallopt(nedpool *p, int parno, int value) THROWSPEC
 {

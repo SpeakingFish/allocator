@@ -24,15 +24,10 @@ struct NedStatistics nedStatistics(void)
 {
 	NedStatistics result;
 
-	struct nedstats info = nedstats();
+	nedstats_t info = {0};
+	nedstats(&info);
 
-	result.nedInfo.threadId = -1;
-	result.nedInfo.totalAllocatedBytes = 0;
-	result.nedInfo.totalAllocationsCount = 0;
-	result.nedInfo.totalReallocatedBytesDelta = 0;
-	result.nedInfo.totalReallocationsCount = 0;
-	result.nedInfo.totalDeallocatedBytes = 0;
-	result.nedInfo.totalDeallocationsCount = 0;
+	memset(&result.nedInfo, 0, sizeof(NedSummaryInfo));
 
 	for (int i = 0; i < MAXIMUM_THREADS_COUNT; ++i)
 	{

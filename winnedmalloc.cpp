@@ -312,7 +312,7 @@ extern "C"
 
 			case DLL_THREAD_DETACH:
 			{	// Destroy the thread cache for all known pools
-				nedpool **pools=nedpoollist();
+				nedpool **pools = nedpoollist();
 				if(pools)
 				{
 					nedpool **pool;
