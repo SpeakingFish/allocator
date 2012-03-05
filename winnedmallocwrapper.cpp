@@ -34,7 +34,12 @@ extern "C"
 
 		// get allowed exe filenames
 		{
-			allowedFilenames = _strlwr(winned_getenv("NEDMALLOC_HOOKED_EXE_NAMES"));
+			allowedFilenames = winned_getenv("NEDMALLOC_HOOKED_EXE_NAMES");
+			if (allowedFilenames == NULL)
+			{
+				return;
+			}
+			allowedFilenames = _strlwr(allowedFilenames);
 			if (0 == strlen(allowedFilenames))
 			{
 				return;
