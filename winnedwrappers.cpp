@@ -248,7 +248,9 @@ void* winned_calloc(size_t num, size_t size)
 {
 	if (isCrash())
 	{
-		return crashAlloc(num * size);
+		void* result = crashAlloc(num * size);
+		memset(result, 0, num * size);
+		return result;
 	}
 
 	void* result = nedcalloc(num, size);
@@ -263,9 +265,15 @@ void* winned_realloc(void* mem, size_t size)
 {
 	if (isCrash())
 	{
-		if (winned_memsize(mem) < size)
+		const size_t oldMemSize = winned_memsize(mem);
+		if (oldMemSize < size)
 		{
-			return crashAlloc(size);
+			void* result = crashAlloc(size);
+			if (oldMemSize > 0)
+			{
+				memcpy(result, mem, oldMemSize);
+			}
+			return result;
 		}
 		return mem;
 	}
@@ -301,7 +309,7 @@ void* winned_recalloc(void* mem, size_t num, size_t size)
 
 	if (isCrash())
 	{
-		if (winned_memsize(mem) < size)
+		if (winned_memsize(mem) < num * size)
 		{
 			result = crashAlloc(num * size);
 		}
