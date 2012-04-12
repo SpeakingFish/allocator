@@ -71,3 +71,11 @@ struct NedMallInfo
 	size_t mmaped;           ///< space in mmapped regions
 	size_t freeChunks;       ///< number of free chunks
 };
+
+struct NedCrashData
+{
+	size_t requstedMemorySize;
+	struct NedMallInfo mallinfo;
+};
+
+typedef void (*NedCrashCallback)(struct NedCrashData);
