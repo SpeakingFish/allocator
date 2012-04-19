@@ -1,5 +1,7 @@
 #pragma once
 
+#include "crtdefs.h"
+
 #if defined(BUILD_WINNED_LIB)
 #define WINNED_EXPORT __declspec(dllexport)
 #else
@@ -16,7 +18,7 @@
 
 #define ENABLE_LARGE_PAGES 1
 
-#define REALLOC_ZERO_BYTES_FREES 1
+#define REALLOC_ZERO_BYTES_FREES 0
 
 #define FORCE_OUR_HEAP_DETECTION
 #ifdef FORCE_OUR_HEAP_DETECTION
@@ -44,6 +46,7 @@
 struct NedSummaryInfo
 {
 	int threadId;
+	ptrdiff_t poolId;
 	__int64 totalAllocatedBytes;
 	__int64 totalAllocationsCount;
 	__int64 totalReallocatedBytesDelta;
@@ -56,7 +59,10 @@ struct NedStatistics
 {
 	struct NedSummaryInfo nedInfo;
 	struct NedSummaryInfo threadsInfo[MAXIMUM_THREADS_COUNT];
+};
 
+struct NedMallInfo
+{
 	size_t maxAllocated;     ///< maximum total allocated space
 	size_t currentAllocated; ///< total allocated space
 	size_t currentFree;      ///< total free space
@@ -65,3 +71,11 @@ struct NedStatistics
 	size_t mmaped;           ///< space in mmapped regions
 	size_t freeChunks;       ///< number of free chunks
 };
+
+struct NedCrashData
+{
+	size_t requstedMemorySize;
+	struct NedMallInfo mallinfo;
+};
+
+typedef void (*NedCrashCallback)(struct NedCrashData);

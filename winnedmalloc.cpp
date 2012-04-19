@@ -1,14 +1,6 @@
 #include <windows.h>
 #include <process.h>
 
-#include "winnedleakcheck.h"
-
-#ifdef LEAK_CHECK
-	#define LEAK_CHECK_WRAPPER(func) func##_leakcheck
-#else
-	#define LEAK_CHECK_WRAPPER(func) func
-#endif
-
 #if (_WIN32_WINNT < 0x0500)
 #define _WIN32_WINNT 0x0500
 #endif
@@ -199,31 +191,31 @@ static Patch rlsPatches[] =
 	// operator new, delete - in Debug msvcr does not use malloc/free functions
 	// for allocations/deallocations, so we have to patch them.
 	#ifdef x64
-		{"??2@YAPEAX_K@Z",  (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
-		{"??3@YAXPEAX@Z",   (FARPROC) LEAK_CHECK_WRAPPER(nedfree),   0},
+		{"??2@YAPEAX_K@Z",  (FARPROC) winned_malloc, 0},
+		{"??3@YAXPEAX@Z",   (FARPROC) winned_free,   0},
 	#else
-		{"??2@YAPAXI@Z",    (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc), 0},
-		{"??3@YAXPAX@Z",    (FARPROC) LEAK_CHECK_WRAPPER(nedfree),   0},
+		{"??2@YAPAXI@Z",    (FARPROC) winned_malloc, 0},
+		{"??3@YAXPAX@Z",    (FARPROC) winned_free,   0},
 	#endif
 #endif
 
 	// C allocator functions
-	{"_msize",      (FARPROC) nedmemsize,  0},
-	{"calloc",      (FARPROC) LEAK_CHECK_WRAPPER(nedcalloc),          0},
-	{"_calloc_crt", (FARPROC) LEAK_CHECK_WRAPPER(nedcalloc),          0},
-	{"malloc",      (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc),          0},
-	{"realloc",     (FARPROC) LEAK_CHECK_WRAPPER(nedrealloc),         0},
-	{"free",        (FARPROC) LEAK_CHECK_WRAPPER(nedfree),            0},
-	{"_recalloc",   (FARPROC) LEAK_CHECK_WRAPPER(nedrecalloc_winned), 0},
+	{"_msize",      (FARPROC) winned_memsize,    0},
+	{"calloc",      (FARPROC) winned_calloc,  0},
+	{"_calloc_crt", (FARPROC) winned_calloc,  0},
+	{"malloc",      (FARPROC) winned_malloc,  0},
+	{"realloc",     (FARPROC) winned_realloc, 0},
+	{"free",        (FARPROC) winned_free,    0},
+	{"_recalloc",   (FARPROC) winned_recalloc,   0},
 
 	// debug allocators
 #ifdef DEBUG
-	{"_calloc_dbg",   (FARPROC) LEAK_CHECK_WRAPPER(nedcalloc),          0},
-	{"_malloc_dbg",   (FARPROC) LEAK_CHECK_WRAPPER(nedmalloc),          0},
-	{"_realloc_dbg",  (FARPROC) LEAK_CHECK_WRAPPER(nedrealloc),         0},
-	{"_recalloc_dbg", (FARPROC) LEAK_CHECK_WRAPPER(nedrecalloc_winned), 0},
-	{"_free_dbg",     (FARPROC) LEAK_CHECK_WRAPPER(nedfree),            0},
-	{"_msize_dbg",    (FARPROC) nedmemsize,                             0},
+	{"_calloc_dbg",   (FARPROC) winned_calloc,   0},
+	{"_malloc_dbg",   (FARPROC) winned_malloc,   0},
+	{"_realloc_dbg",  (FARPROC) winned_realloc,  0},
+	{"_recalloc_dbg", (FARPROC) winned_recalloc, 0},
+	{"_free_dbg",     (FARPROC) winned_free,     0},
+	{"_msize_dbg",    (FARPROC) winned_memsize,  0},
 #endif
 
 	// environment getters
@@ -312,7 +304,7 @@ extern "C"
 
 			case DLL_THREAD_DETACH:
 			{	// Destroy the thread cache for all known pools
-				nedpool **pools=nedpoollist();
+				nedpool **pools = nedpoollist();
 				if(pools)
 				{
 					nedpool **pool;

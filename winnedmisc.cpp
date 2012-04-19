@@ -2,9 +2,9 @@
 
 #include "nedmalloc.h"
 
-struct NedStatistics nedStatistics(void)
+struct NedMallInfo nedMallInfo(void)
 {
-	NedStatistics result;
+	NedMallInfo result;
 
 	struct nedmallinfo info = nedmallinfo();
 
@@ -16,16 +16,21 @@ struct NedStatistics nedStatistics(void)
 	result.currentFree = info.fordblks;
 	result.mayBeRelease = info.keepcost;
 
-	result.nedInfo.threadId = -1;
-	result.nedInfo.totalAllocatedBytes = 0;
-	result.nedInfo.totalAllocationsCount = 0;
-	result.nedInfo.totalReallocatedBytesDelta = 0;
-	result.nedInfo.totalReallocationsCount = 0;
-	result.nedInfo.totalDeallocatedBytes = 0;
-	result.nedInfo.totalDeallocationsCount = 0;
+	return result;
+}
+
+#ifdef NEDMALLOC_USE_STATISTICS
+struct NedStatistics nedStatistics(void)
+{
+	NedStatistics result;
+
+	nedstats_t info = {0};
+	nedstats(&info);
+
+	memset(&result.nedInfo, 0, sizeof(NedSummaryInfo));
+
 	for (int i = 0; i < MAXIMUM_THREADS_COUNT; ++i)
 	{
-#ifdef NEDMALLOC_USE_STATISTICS
 		result.threadsInfo[i] = info.info[i];
 		if (result.threadsInfo[i].threadId <= 0)
 		{
@@ -37,11 +42,7 @@ struct NedStatistics nedStatistics(void)
 		result.nedInfo.totalReallocationsCount += result.threadsInfo[i].totalReallocationsCount;
 		result.nedInfo.totalDeallocatedBytes += result.threadsInfo[i].totalDeallocatedBytes;
 		result.nedInfo.totalDeallocationsCount += result.threadsInfo[i].totalDeallocationsCount;
-#else
-		result.threadsInfo[i] = result.nedInfo;
-#endif
 	}
-
 	return result;
 }
-
+#endif

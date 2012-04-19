@@ -14,7 +14,12 @@ int winned_wputenv_s(WCHAR * name, WCHAR * value);
 
 #ifdef BUILD_WINNED_LIB
 
-void* nedmemalign_win(size_t bytes, size_t alignment);
-void* nedrecalloc_winned(void *mem, size_t num, size_t size);
+void* winned_malloc(size_t size);
+void winned_free(void* mem);
+void* winned_calloc(size_t no, size_t size);
+void* winned_realloc(void* mem, size_t size);
+void* winned_memalign(size_t bytes, size_t alignment);
+void* winned_recalloc(void* mem, size_t num, size_t size);
+size_t winned_memsize(void* mem);
 
 #endif

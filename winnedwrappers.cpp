@@ -1,6 +1,23 @@
 #include "winnedwrappers.h"
 
+#include <Windows.h>
+
 #include "nedmalloc.h"
+//#include "winnedleakcheck.h"
+#include "winnedmisc.h"
+
+// #ifdef LEAK_CHECK
+// #define LEAK_CHECK_WRAPPER(func) func##_leakcheck
+// #else
+// #define LEAK_CHECK_WRAPPER(func) func
+// #endif
+
+static NedCrashCallback s_crashCallback = NULL;
+static void* s_crashBuffer = NULL;
+static const size_t s_crashBufferSize = 4 * 1024 * 1024;
+static const size_t s_invalidCrashBufferOffset = (size_t)(-1);
+static size_t s_crashBufferOffset = s_invalidCrashBufferOffset;
+CRITICAL_SECTION s_crashCriticalSection;
 
 #pragma warning(disable: 4996) // "This function or variable may be unsafe"
 
@@ -135,19 +152,193 @@ int winned_wputenv_s(WCHAR* name, WCHAR* value)
 
 #ifdef BUILD_WINNED_LIB
 
-void* nedmemalign_win(size_t bytes, size_t alignment)
+class CriticalSectionGuard
 {
-	return nedmemalign(alignment, bytes);
+public:
+	CriticalSectionGuard(CRITICAL_SECTION* criticalSection)
+		: m_criticalSection(criticalSection)
+	{
+		EnterCriticalSection(m_criticalSection);
+	}
+	~CriticalSectionGuard()
+	{
+		LeaveCriticalSection(m_criticalSection);
+	}
+
+private:
+	CRITICAL_SECTION* m_criticalSection;
+};
+
+#ifdef NEDMALLOC_USE_CALLBACKS
+void registerCrashCalback(NedCrashCallback callback)
+{
+	InitializeCriticalSection(&s_crashCriticalSection);
+	CriticalSectionGuard guard(&s_crashCriticalSection);
+
+	s_crashCallback = callback;
+	s_crashBuffer = nedmalloc(s_crashBufferSize);
+}
+#endif
+
+namespace
+{
+
+inline void handleNoMemory(size_t requstedMemorySize)
+{
+	NedCrashData data;
+	if (s_crashCallback != NULL)
+	{
+		CriticalSectionGuard guard(&s_crashCriticalSection);
+
+		data.mallinfo = nedMallInfo();
+		data.requstedMemorySize = requstedMemorySize;
+		s_crashBufferOffset = 0;
+
+		(*s_crashCallback)(data);
+	}
 }
 
-void* nedrecalloc_winned(void *mem, size_t num, size_t size) THROWSPEC
+inline bool isCrash()
 {
-	void* buf = nedrealloc(mem, num * size);
-	if (NULL != buf)
+	return s_crashBufferOffset != s_invalidCrashBufferOffset;
+}
+
+inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
+{
+	CriticalSectionGuard guard(&s_crashCriticalSection);
+
+	const size_t rest = (s_crashBufferOffset + (size_t)s_crashBuffer) % align;
+	size_t offset = (rest == 0) ? 0 : (align - rest);
+	if (offset < sizeof(size_t))
 	{
-		memset(buf, 0, num * size);
+		offset += align;
 	}
-	return buf;
+	void* result = (void*)(s_crashBufferOffset + (size_t)s_crashBuffer + offset);
+	s_crashBufferOffset += offset + bytes;
+	*((size_t*)((size_t)result - sizeof(size_t))) = bytes;
+	return result;
+}
+
+}
+
+void* winned_malloc(size_t size)
+{
+	if (isCrash())
+	{
+		return crashAlloc(size);
+	}
+
+	void* result = nedmalloc(size);
+	if (size > 0 && NULL == result)
+	{
+		handleNoMemory(size);
+	}
+	return result;
+}
+
+void winned_free(void* mem)
+{
+	if (isCrash())
+	{
+		return;
+	}
+
+	nedfree(mem);
+}
+
+void* winned_calloc(size_t num, size_t size)
+{
+	if (isCrash())
+	{
+		void* result = crashAlloc(num * size);
+		memset(result, 0, num * size);
+		return result;
+	}
+
+	void* result = nedcalloc(num, size);
+	if (num > 0 && size > 0 && NULL == result)
+	{
+		handleNoMemory(num * size);
+	}
+	return result;
+}
+
+void* winned_realloc(void* mem, size_t size)
+{
+	if (isCrash())
+	{
+		const size_t oldMemSize = winned_memsize(mem);
+		if (oldMemSize < size)
+		{
+			void* result = crashAlloc(size);
+			if (oldMemSize > 0)
+			{
+				memcpy(result, mem, oldMemSize);
+			}
+			return result;
+		}
+		return mem;
+	}
+
+	void* result = nedrealloc(mem, size);
+	if (size > 0 && NULL == result)
+	{
+		handleNoMemory(size);
+	}
+	return result;
+}
+
+void* winned_memalign(size_t bytes, size_t alignment)
+{
+	if (isCrash())
+	{
+		return crashAlloc(bytes, alignment);
+	}
+
+	// NOTICE: Windows and NedMalloc has different function signature
+	void* result = nedmemalign(alignment, bytes);
+	if (bytes > 0 && NULL == result)
+	{
+		handleNoMemory(bytes);
+	}
+	return result;
+}
+
+void* winned_recalloc(void* mem, size_t num, size_t size)
+{
+	void* result = mem;
+	const size_t bytes = num * size;
+
+	if (isCrash())
+	{
+		if (winned_memsize(mem) < num * size)
+		{
+			result = crashAlloc(num * size);
+		}
+	}
+	else
+	{
+		result = nedrealloc(mem, bytes);
+		if (bytes > 0 && NULL == result)
+		{
+			handleNoMemory(bytes);
+		}
+	}
+	
+	if (NULL != result)
+	{
+		memset(result, 0, num * size);
+	}
+	return result;
+}
+
+size_t winned_memsize(void* mem)
+{
+	if (isCrash() && s_crashBuffer != NULL && mem >= s_crashBuffer && mem <= (void*)((size_t)s_crashBuffer + s_crashBufferSize))
+	{
+		return *((size_t*)((size_t)mem - sizeof(size_t)));
+	}
+	return nedmemsize(mem);
 }
 
 #endif

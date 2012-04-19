@@ -4,6 +4,7 @@
 /*.vcproj.*
 /Win32/
 /x64_leakcheck/
+/x64/
 /Win32_leakcheck/
 /_UpgradeReport_Files/
 *pdb/*
