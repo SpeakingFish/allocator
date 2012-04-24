@@ -4,7 +4,11 @@
 
 bool initCallWrappers();
 
+void wrapper_process_attach_before_patch();
+void wrapper_process_attach_after_patch();
 void wrapper_process_detach();
+void wrapper_thread_attach();
+void wrapper_thread_detach();
 
 char*  wrapper_getenv(const char* str);
 WCHAR* wrapper_wgetenv(const WCHAR* str);

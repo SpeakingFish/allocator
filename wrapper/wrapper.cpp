@@ -115,73 +115,51 @@ static void patchIt(Patch* patch)
 
 #endif
 
-#ifdef ENABLE_USERMODEPAGEALLOCATOR
-#define DebugPrint printf
-#define USERPAGE_NOCOMMIT                  (M2_CUSTOM_FLAGS_BEGIN<<1)
 extern "C"
 {
-	extern void *userpage_malloc(size_t toallocate, unsigned flags);
-	extern int userpage_free(void *mem, size_t size);
-	extern void *userpage_realloc(void *mem, size_t oldsize, size_t newsize, int flags, unsigned flags2);
-	extern void *userpage_commit(void *mem, size_t size);
-	extern int userpage_release(void *mem, size_t size);
-}
-static LPVOID WINAPI VirtualAlloc_winned(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
-{
-	LPVOID ret=0;
-#if defined(_DEBUG)
-	DebugPrint("Winpatcher: VirtualAlloc(%p, %u, %x, %x) intercepted\n", lpAddress, dwSize, flAllocationType, flProtect);
-#endif
-	if(!lpAddress && flAllocationType&MEM_RESERVE)
-	{
-		ret=userpage_malloc(dwSize, (flAllocationType&MEM_COMMIT) ? 0 : USERPAGE_NOCOMMIT);
-#if defined(_DEBUG)
-		DebugPrint("Winpatcher: userpage_malloc returns %p\n", ret);
-#endif
-	}
-	else if(lpAddress && (flAllocationType&(MEM_COMMIT|MEM_RESERVE))==(MEM_COMMIT))
-	{
-		ret=userpage_commit(lpAddress, dwSize);
-#if defined(_DEBUG)
-		DebugPrint("Winpatcher: userpage_commit returns %p\n", ret);
-#endif
-	}
-	if(!ret || (void *)-1==ret)
-	{
-		ret=VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
-#if defined(_DEBUG)
-		DebugPrint("Winpatcher: VirtualAlloc returns %p\n", ret);
-#endif
-	}
-	return (void *)-1==ret ? 0 : ret;
-}
-static BOOL WINAPI VirtualFree_winned(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
-{
-#if defined(_DEBUG)
-	DebugPrint("Winpatcher: VirtualFree(%p, %u, %x) intercepted\n", lpAddress, dwSize, dwFreeType);
-#endif
-	if(dwFreeType==MEM_DECOMMIT)
-	{
-		if(-1!=userpage_release(lpAddress, dwSize)) return 1;
-	}
-	else if(dwFreeType==MEM_RELEASE)
-	{
-		if(-1!=userpage_free(lpAddress, dwSize)) return 1;
-	}
-	return VirtualFree(lpAddress, dwSize, dwFreeType);
-}
-static SIZE_T WINAPI VirtualQuery_winned(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwSize)
-{
-#if defined(_DEBUG)
-	DebugPrint("Winpatcher: VirtualQuery(%p, %p, %u) intercepted\n", lpAddress, lpBuffer, dwSize);
-#endif
-	return VirtualQuery(lpAddress, lpBuffer, dwSize);
-}
+	static const int MAX_EXIT_FUNCTIONS = 255;
+	static int exitCount = 0;
+	typedef void (*exitFunctionType) (void);
+	exitFunctionType exitFunctionBuffer[MAX_EXIT_FUNCTIONS];
 
-#endif
+	void allocator_onexit(void (*function)(void))
+	{
+		if (exitCount < MAX_EXIT_FUNCTIONS)
+		{
+			exitFunctionBuffer[exitCount] = function;
+			exitCount++;
+		}
+	}
+
+	void allocator_exit(int code)
+	{
+		code;
+		while (exitCount > 0)
+		{
+			exitCount--;
+			(exitFunctionBuffer[exitCount])();
+		}
+	}
+
+	void* allocator_expand(void * ptr)
+	{
+		ptr;
+		return NULL;
+	}
+}
 
 static Patch rlsPatches[] = 
 {
+	// RELEASE CRT library routines supported by this memory manager.
+
+	{"_expand",		(FARPROC) allocator_expand,	   0},
+	{"_onexit",     (FARPROC) allocator_onexit,    0},
+	{"_exit",       (FARPROC) allocator_exit,      0},
+
+#ifdef DEBUG
+	{"_expand_dbg", (FARPROC) allocator_expand,	   0},
+#endif
+
 #ifdef DEBUG
 	// operator new, delete - in Debug msvcr does not use malloc/free functions
 	// for allocations/deallocations, so we have to patch them.
@@ -226,9 +204,9 @@ static Patch rlsPatches[] =
 	{"wgetenv_s", (FARPROC) wrapper_wgetenv_s, 0},
 
 // #ifdef ENABLE_USERMODEPAGEALLOCATOR
-// 	{"VirtualAlloc_winned", (FARPROC) VirtualAlloc_winned, 0},
-// 	{"VirtualFree_winned",  (FARPROC) VirtualFree_winned,  0},
-// 	{"VirtualQuery_winned", (FARPROC) VirtualQuery_winned, 0},
+// 	{"VirtualAlloc", (FARPROC) VirtualAlloc_winned, 0},
+// 	{"VirtualFree",  (FARPROC) VirtualFree_winned,  0},
+// 	{"VirtualQuery", (FARPROC) VirtualQuery_winned, 0},
 // #endif
 };
 
@@ -285,12 +263,21 @@ extern "C"
 		switch (fdwReason)
 		{
 			case DLL_PROCESS_ATTACH:
-				initCallWrappers();
+				wrapper_process_attach_before_patch();
 				patchMeIn();
+				wrapper_process_attach_after_patch();
+				break;
+
+			case DLL_PROCESS_DETACH:
+				wrapper_process_detach();
+				break;
+
+			case DLL_THREAD_ATTACH:
+				wrapper_thread_attach();
 				break;
 
 			case DLL_THREAD_DETACH:
-				wrapper_process_detach();
+				wrapper_thread_detach();
 				break;
 		}
 		return TRUE;

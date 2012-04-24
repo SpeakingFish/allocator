@@ -139,14 +139,14 @@ nedmalloc.dll.
 /*! \def NEDMALLOCDEPRECATED
 \brief Defined to mark an API as deprecated */
 #ifndef NEDMALLOCDEPRECATED
-#if defined(_MSC_VER) && !defined(__GCCXML__)
- #define NEDMALLOCDEPRECATED __declspec(deprecated)
-#elif defined(__GNUC__) && !defined(__GCCXML__)
- #define NEDMALLOCDEPRECATED __attribute ((deprecated))
-#else
+// #if defined(_MSC_VER) && !defined(__GCCXML__)
+//  #define NEDMALLOCDEPRECATED __declspec(deprecated)
+// #elif defined(__GNUC__) && !defined(__GCCXML__)
+//  #define NEDMALLOCDEPRECATED __attribute ((deprecated))
+// #else
 //! Marks a function as being deprecated
  #define NEDMALLOCDEPRECATED
-#endif
+// #endif
 #endif
 
 /*! \def RESTRICT

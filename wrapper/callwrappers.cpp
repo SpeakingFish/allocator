@@ -258,7 +258,26 @@ inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
 
 }
 
+void wrapper_process_attach_before_patch() 
+{
+	initCallWrappers();
+}
+
+void wrapper_process_attach_after_patch() 
+{
+}
+
 void wrapper_process_detach()
+{
+
+}
+
+void wrapper_thread_attach()
+{
+
+}
+
+void wrapper_thread_detach()
 {	
 	// Destroy the thread cache for all known pools
 	nedpool **pools = nedpoollist();
@@ -348,7 +367,7 @@ void* wrapper_memalign(size_t bytes, size_t alignment)
 		return crashAlloc(bytes, alignment);
 	}
 
-	// NOTICE: Windows and NedMalloc has different function signature
+	// NOTICE: Windows _aligned_malloc and NedMalloc nedmemalign has different function signature
 	void* result = nedmemalign(alignment, bytes);
 	if (bytes > 0 && NULL == result)
 	{
@@ -393,5 +412,70 @@ size_t wrapper_memsize(void* mem)
 	}
 	return nedmemsize(mem);
 }
+
+#ifdef ENABLE_USERMODEPAGEALLOCATOR
+#define DebugPrint printf
+#define USERPAGE_NOCOMMIT                  (M2_CUSTOM_FLAGS_BEGIN<<1)
+extern "C"
+{
+	extern void *userpage_malloc(size_t toallocate, unsigned flags);
+	extern int userpage_free(void *mem, size_t size);
+	extern void *userpage_realloc(void *mem, size_t oldsize, size_t newsize, int flags, unsigned flags2);
+	extern void *userpage_commit(void *mem, size_t size);
+	extern int userpage_release(void *mem, size_t size);
+}
+static LPVOID WINAPI VirtualAlloc_winned(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
+{
+	LPVOID ret=0;
+#if defined(_DEBUG)
+	DebugPrint("Winpatcher: VirtualAlloc(%p, %u, %x, %x) intercepted\n", lpAddress, dwSize, flAllocationType, flProtect);
+#endif
+	if(!lpAddress && flAllocationType&MEM_RESERVE)
+	{
+		ret=userpage_malloc(dwSize, (flAllocationType&MEM_COMMIT) ? 0 : USERPAGE_NOCOMMIT);
+#if defined(_DEBUG)
+		DebugPrint("Winpatcher: userpage_malloc returns %p\n", ret);
+#endif
+	}
+	else if(lpAddress && (flAllocationType&(MEM_COMMIT|MEM_RESERVE))==(MEM_COMMIT))
+	{
+		ret=userpage_commit(lpAddress, dwSize);
+#if defined(_DEBUG)
+		DebugPrint("Winpatcher: userpage_commit returns %p\n", ret);
+#endif
+	}
+	if(!ret || (void *)-1==ret)
+	{
+		ret=VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+#if defined(_DEBUG)
+		DebugPrint("Winpatcher: VirtualAlloc returns %p\n", ret);
+#endif
+	}
+	return (void *)-1==ret ? 0 : ret;
+}
+static BOOL WINAPI VirtualFree_winned(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
+{
+#if defined(_DEBUG)
+	DebugPrint("Winpatcher: VirtualFree(%p, %u, %x) intercepted\n", lpAddress, dwSize, dwFreeType);
+#endif
+	if(dwFreeType==MEM_DECOMMIT)
+	{
+		if(-1!=userpage_release(lpAddress, dwSize)) return 1;
+	}
+	else if(dwFreeType==MEM_RELEASE)
+	{
+		if(-1!=userpage_free(lpAddress, dwSize)) return 1;
+	}
+	return VirtualFree(lpAddress, dwSize, dwFreeType);
+}
+static SIZE_T WINAPI VirtualQuery_winned(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwSize)
+{
+#if defined(_DEBUG)
+	DebugPrint("Winpatcher: VirtualQuery(%p, %p, %u) intercepted\n", lpAddress, lpBuffer, dwSize);
+#endif
+	return VirtualQuery(lpAddress, lpBuffer, dwSize);
+}
+
+#endif
 
 #endif

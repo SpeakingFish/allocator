@@ -413,39 +413,7 @@
 			Name="Wrapper"
 			>
 			<File
-				RelativePath=".\wrapper\stackwalker.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\wrapper\leakcheck.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\wrapper\wrapper.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\wrapper\allocatorapi.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\wrapper\callwrappers.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\wrapper\stackwalker.h"
-				>
-			</File>
-			<File
-				RelativePath=".\export\include\allocatordefs.h"
-				>
-			</File>
-			<File
-				RelativePath=".\wrapper\winnedleakcheck.h"
-				>
-			</File>
-			<File
-				RelativePath=".\export\include\useallocator.h"
 				>
 			</File>
 			<File
@@ -453,20 +421,51 @@
 				>
 			</File>
 			<File
+				RelativePath=".\export\include\allocatordefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\callwrappers.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\wrapper\callwrappers.h"
 				>
 			</File>
+			<File
+				RelativePath=".\wrapper\leakcheck.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\stackwalker.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\stackwalker.h"
+				>
+			</File>
+			<File
+				RelativePath=".\export\include\useallocator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\winnedleakcheck.h"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\wrapper.cpp"
+				>
+			</File>
 		</Filter>
-	
 		<Filter
 			Name="Nedmalloc"
 			>
 			<File
-				RelativePath=".\allocators\nedmalloc\nedmalloc.c"
+				RelativePath=".\allocators\nedmalloc\malloc.c.h"
 				>
 			</File>
 			<File
-				RelativePath=".\allocators\nedmalloc\malloc.c.h"
+				RelativePath=".\allocators\nedmalloc\nedmalloc.c"
 				>
 			</File>
 			<File
@@ -474,14 +473,9 @@
 				>
 			</File>
 		</Filter>
-	
 		<Filter
 			Name="Hoard"
 			>
-			<File
-				RelativePath=".\allocators\hoard-38\src\libhoard.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
