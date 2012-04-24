@@ -410,14 +410,8 @@
 	</References>
 	<Files>
 		<Filter
-			Name="Source Files"
-			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			Name="Wrapper"
 			>
-			<File
-				RelativePath=".\allocators\nedmalloc\nedmalloc.c"
-				>
-			</File>
 			<File
 				RelativePath=".\wrapper\stackwalker.cpp"
 				>
@@ -436,20 +430,6 @@
 			</File>
 			<File
 				RelativePath=".\wrapper\callwrappers.cpp"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-			<File
-				RelativePath=".\allocators\nedmalloc\malloc.c.h"
-				>
-			</File>
-			<File
-				RelativePath=".\allocators\nedmalloc\nedmalloc.h"
 				>
 			</File>
 			<File
@@ -474,6 +454,32 @@
 			</File>
 			<File
 				RelativePath=".\wrapper\callwrappers.h"
+				>
+			</File>
+		</Filter>
+	
+		<Filter
+			Name="Nedmalloc"
+			>
+			<File
+				RelativePath=".\allocators\nedmalloc\nedmalloc.c"
+				>
+			</File>
+			<File
+				RelativePath=".\allocators\nedmalloc\malloc.c.h"
+				>
+			</File>
+			<File
+				RelativePath=".\allocators\nedmalloc\nedmalloc.h"
+				>
+			</File>
+		</Filter>
+	
+		<Filter
+			Name="Hoard"
+			>
+			<File
+				RelativePath=".\allocators\hoard-38\src\libhoard.cpp"
 				>
 			</File>
 		</Filter>

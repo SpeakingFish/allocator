@@ -2,6 +2,7 @@
 /include/
 /bin/
 /*.vcproj.*
+/*/*.vcproj.*
 /Win32/
 /x64/
 /_UpgradeReport_Files/

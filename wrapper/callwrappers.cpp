@@ -15,13 +15,6 @@ enum AllocatorMode
 };
 
 static AllocatorMode s_allocatorMode = AllocatorNotInitialized;
-
-// #ifdef LEAK_CHECK
-// #define LEAK_CHECK_WRAPPER(func) func##_leakcheck
-// #else
-// #define LEAK_CHECK_WRAPPER(func) func
-// #endif
-
 static AllocatorCrashCallback s_crashCallback = NULL;
 static void* s_crashBuffer = NULL;
 static const size_t s_crashBufferSize = 4 * 1024 * 1024;
@@ -266,7 +259,8 @@ inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
 }
 
 void wrapper_process_detach()
-{	// Destroy the thread cache for all known pools
+{	
+	// Destroy the thread cache for all known pools
 	nedpool **pools = nedpoollist();
 	if(pools)
 	{
