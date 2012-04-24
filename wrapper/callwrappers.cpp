@@ -1,10 +1,17 @@
-#include "winnedwrappers.h"
+#include "callwrappers.h"
 
-#include <Windows.h>
+#include "nedmalloc/nedmalloc.h"
+#include "allocatorapi.h"
 
-#include "nedmalloc.h"
-//#include "winnedleakcheck.h"
-#include "winnedmisc.h"
+enum AllocatorMode
+{
+	AllocatorNotInitialized,
+	NoCustomAllocator,
+	AllocatorNed,
+	AllocatorHoard,
+};
+
+static AllocatorMode s_allocatorMode = AllocatorNotInitialized;
 
 // #ifdef LEAK_CHECK
 // #define LEAK_CHECK_WRAPPER(func) func##_leakcheck
@@ -12,7 +19,7 @@
 // #define LEAK_CHECK_WRAPPER(func) func
 // #endif
 
-static NedCrashCallback s_crashCallback = NULL;
+static AllocatorCrashCallback s_crashCallback = NULL;
 static void* s_crashBuffer = NULL;
 static const size_t s_crashBufferSize = 4 * 1024 * 1024;
 static const size_t s_invalidCrashBufferOffset = (size_t)(-1);
@@ -23,7 +30,56 @@ CRITICAL_SECTION s_crashCriticalSection;
 
 static const size_t bufferSize = 32767;
 
-char* winned_getenv(const char* str)
+
+bool initCallWrappers()
+{
+	if (s_allocatorMode == AllocatorNotInitialized)
+	{
+		s_allocatorMode = AllocatorNed;
+
+		size_t getenvReturnValue;
+		const size_t getenvBufferSize = 128;
+		char getenvBuffer[getenvBufferSize];
+		const char* allocatorModeEnvName = "ALLOCATOR_MODE";
+		wrapper_getenv_s(&getenvReturnValue, getenvBuffer, getenvBufferSize - 1, allocatorModeEnvName);
+
+		if (strcmp("system", getenvBuffer))
+		{
+			s_allocatorMode = NoCustomAllocator;
+		}
+		else if (strcmp("ned", getenvBuffer))
+		{
+			s_allocatorMode = AllocatorNed;
+		}
+		else if (strcmp("hoard", getenvBuffer))
+		{
+			s_allocatorMode = AllocatorHoard;
+		}
+	}
+
+#ifdef LEAK_CHECK
+	initLeakCheck();
+#endif
+
+	return s_allocatorMode == AllocatorNed || s_allocatorMode == AllocatorHoard;
+}
+
+void wrapper_process_detach()
+{	// Destroy the thread cache for all known pools
+	nedpool **pools = nedpoollist();
+	if(pools)
+	{
+		nedpool **pool;
+		for(pool = pools; *pool; ++pool)
+		{
+			neddisablethreadcache(*pool);
+		}
+		nedfree(pools);
+	}
+	neddisablethreadcache(0);
+}
+
+char* wrapper_getenv(const char* str)
 {
 	static char buffer[bufferSize];
 	*buffer = 0;
@@ -34,7 +90,7 @@ char* winned_getenv(const char* str)
 	return buffer;
 }
 
-WCHAR* winned_wgetenv(const WCHAR* str)
+WCHAR* wrapper_wgetenv(const WCHAR* str)
 {
 	static WCHAR buffer[bufferSize];
 	*buffer = 0;
@@ -45,7 +101,7 @@ WCHAR* winned_wgetenv(const WCHAR* str)
 	return buffer;
 }
 
-int winned_getenv_s(size_t* pReturnValue, char* buffer, size_t numberOfElements, const char* varname)
+int wrapper_getenv_s(size_t* pReturnValue, char* buffer, size_t numberOfElements, const char* varname)
 {
 	char buf[bufferSize];
 
@@ -76,8 +132,8 @@ int winned_getenv_s(size_t* pReturnValue, char* buffer, size_t numberOfElements,
 	return 0;
 }
 
-// see comments for winned_getenv_s()
-int winned_wgetenv_s(size_t* pReturnValue, WCHAR* buffer, size_t numberOfElements, const WCHAR* varname)
+// see comments for wrapper_getenv_s()
+int wrapper_wgetenv_s(size_t* pReturnValue, WCHAR* buffer, size_t numberOfElements, const WCHAR* varname)
 {
 	WCHAR buf[bufferSize];
 	*pReturnValue = GetEnvironmentVariableW(varname, buf, _countof(buf) - 1);
@@ -100,7 +156,7 @@ int winned_wgetenv_s(size_t* pReturnValue, WCHAR* buffer, size_t numberOfElement
 	return 0;
 }
 
-int winned_putenv(const char* str)
+int wrapper_putenv(const char* str)
 {
 	const char* eqpos = strchr(str, '=');
 	if (eqpos != NULL)
@@ -119,7 +175,7 @@ int winned_putenv(const char* str)
 	return -1;
 } 
 
-int winned_wputenv(WCHAR* str)
+int wrapper_wputenv(WCHAR* str)
 {
 	WCHAR* eqpos = wcschr(str, '=');
 	if (eqpos != NULL)
@@ -138,13 +194,13 @@ int winned_wputenv(WCHAR* str)
 	return -1;
 } 
 
-int winned_putenv_s(const char* name, const char* value)
+int wrapper_putenv_s(const char* name, const char* value)
 {
 	SetEnvironmentVariableA(name, value);
 	return 0;
 } 
 
-int winned_wputenv_s(WCHAR* name, WCHAR* value)
+int wrapper_wputenv_s(WCHAR* name, WCHAR* value)
 {
 	SetEnvironmentVariableW(name, value);
 	return 0;
@@ -167,8 +223,8 @@ private:
 	CRITICAL_SECTION* m_criticalSection;
 };
 
-#ifdef NEDMALLOC_USE_CALLBACKS
-void registerCrashCalback(NedCrashCallback callback)
+#ifdef ALLOCATOR_USE_CALLBACKS
+void registerCrashCalback(AllocatorCrashCallback callback)
 {
 	InitializeCriticalSection(&s_crashCriticalSection);
 	CriticalSectionGuard guard(&s_crashCriticalSection);
@@ -183,12 +239,12 @@ namespace
 
 inline void handleNoMemory(size_t requstedMemorySize)
 {
-	NedCrashData data;
+	AllocatorCrashData data;
 	if (s_crashCallback != NULL)
 	{
 		CriticalSectionGuard guard(&s_crashCriticalSection);
 
-		data.mallinfo = nedMallInfo();
+		data.mallinfo = allocatorMallInfo();
 		data.requstedMemorySize = requstedMemorySize;
 		s_crashBufferOffset = 0;
 
@@ -219,7 +275,7 @@ inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
 
 }
 
-void* winned_malloc(size_t size)
+void* wrapper_malloc(size_t size)
 {
 	if (isCrash())
 	{
@@ -234,7 +290,7 @@ void* winned_malloc(size_t size)
 	return result;
 }
 
-void winned_free(void* mem)
+void wrapper_free(void* mem)
 {
 	if (isCrash())
 	{
@@ -244,7 +300,7 @@ void winned_free(void* mem)
 	nedfree(mem);
 }
 
-void* winned_calloc(size_t num, size_t size)
+void* wrapper_calloc(size_t num, size_t size)
 {
 	if (isCrash())
 	{
@@ -261,11 +317,11 @@ void* winned_calloc(size_t num, size_t size)
 	return result;
 }
 
-void* winned_realloc(void* mem, size_t size)
+void* wrapper_realloc(void* mem, size_t size)
 {
 	if (isCrash())
 	{
-		const size_t oldMemSize = winned_memsize(mem);
+		const size_t oldMemSize = wrapper_memsize(mem);
 		if (oldMemSize < size)
 		{
 			void* result = crashAlloc(size);
@@ -286,7 +342,7 @@ void* winned_realloc(void* mem, size_t size)
 	return result;
 }
 
-void* winned_memalign(size_t bytes, size_t alignment)
+void* wrapper_memalign(size_t bytes, size_t alignment)
 {
 	if (isCrash())
 	{
@@ -302,14 +358,14 @@ void* winned_memalign(size_t bytes, size_t alignment)
 	return result;
 }
 
-void* winned_recalloc(void* mem, size_t num, size_t size)
+void* wrapper_recalloc(void* mem, size_t num, size_t size)
 {
 	void* result = mem;
 	const size_t bytes = num * size;
 
 	if (isCrash())
 	{
-		if (winned_memsize(mem) < num * size)
+		if (wrapper_memsize(mem) < num * size)
 		{
 			result = crashAlloc(num * size);
 		}
@@ -330,7 +386,7 @@ void* winned_recalloc(void* mem, size_t num, size_t size)
 	return result;
 }
 
-size_t winned_memsize(void* mem)
+size_t wrapper_memsize(void* mem)
 {
 	if (isCrash() && s_crashBuffer != NULL && mem >= s_crashBuffer && mem <= (void*)((size_t)s_crashBuffer + s_crashBufferSize))
 	{

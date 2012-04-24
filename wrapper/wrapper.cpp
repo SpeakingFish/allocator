@@ -16,17 +16,12 @@ void (*winnedMemsetPtr)(void* dest, int c, size_t count);
 	LPCWSTR rlsCRTLibraryName[] = {L"MSVCR71.DLL", L"MSVCR80.DLL", L"MSVCR90.DLL", L"MSVCR100.DLL", L"KERNEL32.DLL"};
 #endif
 
-#include "nedmalloc.h"
+#include "nedmalloc/nedmalloc.h"
 
-#include "winnedwrappers.h"
+#include "callwrappers.h"
 
 struct Patch;
 static void patchIt(Patch* patch);
-
-// Intercept the exit functions.
-
-//static const int WINNED_MAX_EXIT_FUNCTIONS = 255;
-//static int exitCount = 0;
 
 extern "C"
 {
@@ -191,50 +186,50 @@ static Patch rlsPatches[] =
 	// operator new, delete - in Debug msvcr does not use malloc/free functions
 	// for allocations/deallocations, so we have to patch them.
 	#ifdef x64
-		{"??2@YAPEAX_K@Z",  (FARPROC) winned_malloc, 0},
-		{"??3@YAXPEAX@Z",   (FARPROC) winned_free,   0},
+		{"??2@YAPEAX_K@Z",  (FARPROC) wrapper_malloc, 0},
+		{"??3@YAXPEAX@Z",   (FARPROC) wrapper_free,   0},
 	#else
-		{"??2@YAPAXI@Z",    (FARPROC) winned_malloc, 0},
-		{"??3@YAXPAX@Z",    (FARPROC) winned_free,   0},
+		{"??2@YAPAXI@Z",    (FARPROC) wrapper_malloc, 0},
+		{"??3@YAXPAX@Z",    (FARPROC) wrapper_free,   0},
 	#endif
 #endif
 
 	// C allocator functions
-	{"_msize",      (FARPROC) winned_memsize,    0},
-	{"calloc",      (FARPROC) winned_calloc,  0},
-	{"_calloc_crt", (FARPROC) winned_calloc,  0},
-	{"malloc",      (FARPROC) winned_malloc,  0},
-	{"realloc",     (FARPROC) winned_realloc, 0},
-	{"free",        (FARPROC) winned_free,    0},
-	{"_recalloc",   (FARPROC) winned_recalloc,   0},
+	{"_msize",      (FARPROC) wrapper_memsize,  0},
+	{"calloc",      (FARPROC) wrapper_calloc,   0},
+	{"_calloc_crt", (FARPROC) wrapper_calloc,   0},
+	{"malloc",      (FARPROC) wrapper_malloc,   0},
+	{"realloc",     (FARPROC) wrapper_realloc,  0},
+	{"free",        (FARPROC) wrapper_free,     0},
+	{"_recalloc",   (FARPROC) wrapper_recalloc, 0},
 
 	// debug allocators
 #ifdef DEBUG
-	{"_calloc_dbg",   (FARPROC) winned_calloc,   0},
-	{"_malloc_dbg",   (FARPROC) winned_malloc,   0},
-	{"_realloc_dbg",  (FARPROC) winned_realloc,  0},
-	{"_recalloc_dbg", (FARPROC) winned_recalloc, 0},
-	{"_free_dbg",     (FARPROC) winned_free,     0},
-	{"_msize_dbg",    (FARPROC) winned_memsize,  0},
+	{"_calloc_dbg",   (FARPROC) wrapper_calloc,   0},
+	{"_malloc_dbg",   (FARPROC) wrapper_malloc,   0},
+	{"_realloc_dbg",  (FARPROC) wrapper_realloc,  0},
+	{"_recalloc_dbg", (FARPROC) wrapper_recalloc, 0},
+	{"_free_dbg",     (FARPROC) wrapper_free,     0},
+	{"_msize_dbg",    (FARPROC) wrapper_memsize,  0},
 #endif
 
 	// environment getters
-	{"_putenv",    (FARPROC) winned_putenv,    0},
-	{"_putenv_s",  (FARPROC) winned_putenv_s,  0},
-	{"_wputenv",   (FARPROC) winned_wputenv,   0},
-	{"_wputenv_s", (FARPROC) winned_wputenv_s, 0},
+	{"_putenv",    (FARPROC) wrapper_putenv,    0},
+	{"_putenv_s",  (FARPROC) wrapper_putenv_s,  0},
+	{"_wputenv",   (FARPROC) wrapper_wputenv,   0},
+	{"_wputenv_s", (FARPROC) wrapper_wputenv_s, 0},
 
 	// environment setters
-	{"getenv",    (FARPROC) winned_getenv,    0},
-	{"getenv_s",  (FARPROC) winned_getenv_s,  0},
-	{"wgetenv",   (FARPROC) winned_wgetenv,   0},
-	{"wgetenv_s", (FARPROC) winned_wgetenv_s, 0},
+	{"getenv",    (FARPROC) wrapper_getenv,    0},
+	{"getenv_s",  (FARPROC) wrapper_getenv_s,  0},
+	{"wgetenv",   (FARPROC) wrapper_wgetenv,   0},
+	{"wgetenv_s", (FARPROC) wrapper_wgetenv_s, 0},
 
-#ifdef ENABLE_USERMODEPAGEALLOCATOR
-	{"VirtualAlloc_winned", (FARPROC) VirtualAlloc_winned, 0},
-	{"VirtualFree_winned",  (FARPROC) VirtualFree_winned,  0},
-	{"VirtualQuery_winned", (FARPROC) VirtualQuery_winned, 0},
-#endif
+// #ifdef ENABLE_USERMODEPAGEALLOCATOR
+// 	{"VirtualAlloc_winned", (FARPROC) VirtualAlloc_winned, 0},
+// 	{"VirtualFree_winned",  (FARPROC) VirtualFree_winned,  0},
+// 	{"VirtualQuery_winned", (FARPROC) VirtualQuery_winned, 0},
+// #endif
 };
 
 static bool patchMeIn(void)
@@ -280,12 +275,6 @@ extern "C"
 		hinstDLL;
 		lpreserved;
 
-		static bool noNed = (NULL != winned_getenv("NEDMALLOC_DISABLE_PATCHING"));
-		if (noNed)
-		{
-			return TRUE;
-		}
-
 #ifdef ENABLE_USERMODEPAGEALLOCATOR
 		if(DLL_PROCESS_ATTACH == fdwReason)
 		{
@@ -296,25 +285,13 @@ extern "C"
 		switch (fdwReason)
 		{
 			case DLL_PROCESS_ATTACH:
+				initCallWrappers();
 				patchMeIn();
-#ifdef LEAK_CHECK
-				initLeakCheck();
-#endif
 				break;
 
 			case DLL_THREAD_DETACH:
-			{	// Destroy the thread cache for all known pools
-				nedpool **pools = nedpoollist();
-				if(pools)
-				{
-					nedpool **pool;
-					for(pool=pools; *pool; ++pool)
-						neddisablethreadcache(*pool);
-					nedfree(pools);
-				}
-				neddisablethreadcache(0);
+				wrapper_process_detach();
 				break;
-			}
 		}
 		return TRUE;
 	}

@@ -1,6 +1,6 @@
 #pragma once
 
-// *** Include this file into your main.cpp, link nedmalloc.lib and enjoy!
+// *** Include this file into your main.cpp, link allocator.lib and enjoy!
 
 #include <windows.h>
 
@@ -16,7 +16,7 @@ extern "C" {
 
 	void ReferenceNM (void)
 	{
-		LoadLibraryA("nedmalloc.dll");
+		LoadLibraryA("allocator.dll");
 		ReferenceNMStub = 1;
 	}
 

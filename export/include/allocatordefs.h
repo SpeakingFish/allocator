@@ -2,10 +2,10 @@
 
 #include "crtdefs.h"
 
-#if defined(BUILD_WINNED_LIB)
-#define WINNED_EXPORT __declspec(dllexport)
+#if defined(BUILD_ALLOCATOR_LIB)
+#define ALLOCATOR_EXPORT __declspec(dllexport)
 #else
-#define WINNED_EXPORT __declspec(dllimport)
+#define ALLOCATOR_EXPORT __declspec(dllimport)
 #endif
 
 #ifdef x64
@@ -43,7 +43,7 @@
 // #define ENABLE_USERMODEPAGEALLOCATOR 1
 
 /// \brief Returns information about a memory pool
-struct NedSummaryInfo
+struct AllocatorSummaryInfo
 {
 	int threadId;
 	ptrdiff_t poolId;
@@ -55,13 +55,13 @@ struct NedSummaryInfo
 	__int64 totalDeallocationsCount;
 };
 
-struct NedStatistics
+struct AllocatorStatistics
 {
-	struct NedSummaryInfo nedInfo;
-	struct NedSummaryInfo threadsInfo[MAXIMUM_THREADS_COUNT];
+	struct AllocatorSummaryInfo allocatorInfo;
+	struct AllocatorSummaryInfo threadsInfo[MAXIMUM_THREADS_COUNT];
 };
 
-struct NedMallInfo
+struct AllocatorMallInfo
 {
 	size_t maxAllocated;     ///< maximum total allocated space
 	size_t currentAllocated; ///< total allocated space
@@ -72,10 +72,10 @@ struct NedMallInfo
 	size_t freeChunks;       ///< number of free chunks
 };
 
-struct NedCrashData
+struct AllocatorCrashData
 {
 	size_t requstedMemorySize;
-	struct NedMallInfo mallinfo;
+	struct AllocatorMallInfo mallinfo;
 };
 
-typedef void (*NedCrashCallback)(struct NedCrashData);
+typedef void (*AllocatorCrashCallback)(struct AllocatorCrashData);

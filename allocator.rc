@@ -69,11 +69,11 @@ BEGIN
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            VALUE "FileDescription", "nedmalloc"
+            VALUE "FileDescription", "allocator"
             VALUE "FileVersion", "1, 0, 2659, 1020"
-            VALUE "InternalName", "nedmalloc"
-            VALUE "OriginalFilename", "nedmalloc.dll"
-            VALUE "ProductName", "nedmalloc"
+            VALUE "InternalName", "allocator"
+            VALUE "OriginalFilename", "allocator.dll"
+            VALUE "ProductName", "allocator"
             VALUE "ProductVersion", "1, 0, 2659, 1020"
         END
     END

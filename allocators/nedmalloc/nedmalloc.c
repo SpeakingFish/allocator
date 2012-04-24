@@ -761,8 +761,8 @@ typedef struct threadcache_t
 	int mymspace;						/* Last mspace entry this thread used */
 	long threadid;
 	unsigned int mallocs, frees, successes;
-#ifdef NEDMALLOC_USE_STATISTICS
-	struct NedSummaryInfo info;
+#ifdef ALLOCATOR_USE_STATISTICS
+	struct AllocatorSummaryInfo info;
 #endif
 #if ENABLE_LOGGING
 	logentry *logentries, *logentriesptr, *logentriesend;
@@ -1320,9 +1320,9 @@ static NOINLINE threadcache *AllocCache(nedpool *RESTRICT p) THROWSPEC
 #else
 		1;
 #endif
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 	{
-		memset(&tc->info, 0, sizeof(struct NedSummaryInfo));
+		memset(&tc->info, 0, sizeof(struct AllocatorSummaryInfo));
 		tc->info.threadId = tc->threadid;
 		tc->info.poolId = (ptrdiff_t)p;
 	}
@@ -1898,7 +1898,7 @@ static FORCEINLINE void GetThreadCache(nedpool *RESTRICT *RESTRICT p, threadcach
 #endif
 }
 
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 
 void nedpstats(struct nedstats_t* dest, nedpool *p) THROWSPEC
 {
@@ -1962,7 +1962,7 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc2(nedpool *p, size_t size
 			LogOperation(tc, p, LOGENTRY_POOL_MALLOC, mymspace, size, 0, alignment, flags, ret);
 	}
 	LogOperation(tc, p, LOGENTRY_MALLOC, mymspace, size, 0, alignment, flags, ret);
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 	if (tc && ret)
 	{
 		tc->info.totalAllocatedBytes += nedblksize(0, ret, flags);
@@ -2042,7 +2042,7 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 		}
 	}
 	LogOperation(tc, p, LOGENTRY_REALLOC, mymspace, size, mem, alignment, flags, ret);
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 	if (tc && ret)
 	{
 		tc->info.totalReallocatedBytesDelta += nedblksize(0, ret, flags);
@@ -2077,7 +2077,7 @@ NEDMALLOCNOALIASATTR void   nedpfree2(nedpool *p, void *mem, unsigned flags) THR
 		abort();
 	}
 	GetThreadCache(&p, &tc, &mymspace, 0);
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 	if (tc)
 	{
 		tc->info.totalDeallocatedBytes += memsize;

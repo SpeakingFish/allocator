@@ -1,10 +1,10 @@
-#include "winnedleakcheck.h"
+#include "leakcheck.h"
 
 #ifdef LEAK_CHECK
 
-#include "nedmalloc.h"
+#include "nedmalloc/nedmalloc.h"
 #include "stackwalker.h"
-#include "winnedwrappers.h"
+#include "callwrappers.h"
 
 #include <map>
 #include <list>

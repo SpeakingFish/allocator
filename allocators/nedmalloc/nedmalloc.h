@@ -1,5 +1,5 @@
 #pragma once
-#include "winneddefs.h"
+#include "allocatordefs.h"
 
 /* nedalloc, an alternative malloc implementation for multiple threads without
 lock contention based on dlmalloc v2.8.4. (C) 2005-2010 Niall Douglas
@@ -267,9 +267,9 @@ struct nedmallinfo {
   size_t fordblks; /*!< total free space */
   size_t keepcost; /*!< releasable (via malloc_trim) space */
 };
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 struct nedstats_t {
-	struct NedSummaryInfo info[MAXIMUM_THREADS_COUNT];
+	struct AllocatorSummaryInfo info[MAXIMUM_THREADS_COUNT];
 };
 #endif
 #if defined(__cplusplus)
@@ -498,7 +498,7 @@ NEDMALLOCEXTSPEC NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_cal
 /*! \brief Equivalent to nedpindependent_comalloc((nedpool *) 0, elems, sizes, chunks) */
 NEDMALLOCEXTSPEC NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void **nedindependent_comalloc(size_t elems, size_t *sizes, void **chunks) THROWSPEC;
 
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 	NEDMALLOCEXTSPEC NEDMALLOCNOALIASATTR void nedstats(struct nedstats_t*) THROWSPEC;
 #endif
 
@@ -614,7 +614,7 @@ NEDMALLOCEXTSPEC void   nedpmalloc_stats(nedpool *p) THROWSPEC;
 /*! \brief Returns how much memory is currently in use by the memory pool */
 NEDMALLOCEXTSPEC size_t nedpmalloc_footprint(nedpool *p) THROWSPEC;
 
-#ifdef NEDMALLOC_USE_STATISTICS
+#ifdef ALLOCATOR_USE_STATISTICS
 	/*! \brief Returns extended information about the memory pool */
 	NEDMALLOCEXTSPEC void nedpstats(struct nedstats_t* dest, nedpool *p) THROWSPEC;
 #endif
@@ -1557,7 +1557,7 @@ public:
 #define NEDMALLOC_DEBUG DEBUG
 #define ENABLE_LARGE_PAGES undef
 #define ENABLE_FAST_HEAP_DETECTION undef
-#define REPLACE_SYSTEM_ALLOCATOR undef
+//#define REPLACE_SYSTEM_ALLOCATOR undef
 #define ENABLE_TOLERANT_NEDMALLOC undef
 #define NO_NED_NAMESPACE undef
 
