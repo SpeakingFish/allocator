@@ -171,13 +171,15 @@ static Patch rlsPatches[] =
 #endif
 
 	// C allocator functions
-	{"_msize",      (FARPROC) wrapper_memsize,  0},
-	{"calloc",      (FARPROC) wrapper_calloc,   0},
-	{"_calloc_crt", (FARPROC) wrapper_calloc,   0},
-	{"malloc",      (FARPROC) wrapper_malloc,   0},
-	{"realloc",     (FARPROC) wrapper_realloc,  0},
-	{"free",        (FARPROC) wrapper_free,     0},
-	{"_recalloc",   (FARPROC) wrapper_recalloc, 0},
+	{"_msize",          (FARPROC) wrapper_memsize,  0},
+	{"calloc",          (FARPROC) wrapper_calloc,   0},
+	{"_calloc_crt",     (FARPROC) wrapper_calloc,   0},
+	{"malloc",          (FARPROC) wrapper_malloc,   0},
+	{"realloc",         (FARPROC) wrapper_realloc,  0},
+	{"free",            (FARPROC) wrapper_free,     0},
+	{"_recalloc",       (FARPROC) wrapper_recalloc, 0},
+	{"_aligned_malloc", (FARPROC) wrapper_memalign, 0},
+	{"_aligned_free",   (FARPROC) wrapper_free,     0},
 
 	// debug allocators
 #ifdef DEBUG
