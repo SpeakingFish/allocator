@@ -435,6 +435,7 @@ DEFAULT_GRANULARITY        default: page size if MORECORE_CONTIGUOUS,
   "TOP_PAD")
 
 DEFAULT_GRANULARITY_ALIGNED default: undefined (which means page size)
+  Affects Win32 only (POSIX doesn't have the necessary API support).
   Whether to enforce alignment when allocating and deallocating memory
   from the system i.e. the base address of all allocations will be
   aligned to DEFAULT_GRANULARITY if it is set. Note that enabling this carries
@@ -521,7 +522,7 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #endif  /* WIN32 */
 #ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN
-	#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
 #include <tchar.h>
@@ -620,6 +621,7 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #ifndef HAVE_MREMAP
 #ifdef linux
 #define HAVE_MREMAP 1
+#define _GNU_SOURCE /* Turns on mremap() definition */
 #else   /* linux */
 #define HAVE_MREMAP 0
 #endif  /* linux */
@@ -1636,9 +1638,6 @@ static size_t mmapped_granularity;
 static int dev_zero_fd = -1; /* Cached file descriptor for /dev/zero. */
 #endif /* MAP_ANONYMOUS */
 
-#ifdef DEFAULT_GRANULARITY_ALIGNED
-static void* lastAlignedmmap; /* Used as a hint */
-#endif /* DEFAULT_GRANULARITY_ALIGNED */
 static FORCEINLINE void* posix_mmap(size_t size) {
   void* baseaddress = 0;
   void* ptr = 0;
@@ -1660,31 +1659,10 @@ static FORCEINLINE void* posix_mmap(size_t size) {
     ptr = mmap(baseaddress, size, MMAP_PROT, flags|MMAP_FLAGS_LARGEPAGE, fd, 0);
 #endif
   if (!ptr) {
-#ifdef DEFAULT_GRANULARITY_ALIGNED
-    void* originalbaseaddress;
-    baseaddress = originalbaseaddress = lastAlignedmmap;
-    for(;;) {
-      if (baseaddress) flags|=MAP_FIXED;
-      ptr = mmap(baseaddress, size, MMAP_PROT, flags, fd, 0);
-      if (!ptr)
-        baseaddress = (void*)((size_t)baseaddress + mparams.granularity);
-      else if ((size_t)ptr & (mparams.granularity - SIZE_T_ONE)) {
-        munmap(ptr, size);
-        baseaddress = (void*)(((size_t)ptr + mparams.granularity) & ~(mparams.granularity - SIZE_T_ONE));
-      }
-      else break;
-      if (baseaddress == originalbaseaddress) /* If this wraps then we are out of address space */
-        return MFAIL;
-    }
-#else
     ptr = mmap(baseaddress, size, MMAP_PROT, flags, fd, 0);
-#endif
   }
-#if DEBUG
-    if (lastAlignedmmap && ptr!=lastAlignedmmap) printf("Non-contiguous mmap between %p and %p\n", ptr, lastAlignedmmap);
-#endif
-#ifdef DEFAULT_GRANULARITY_ALIGNED
-  if (ptr) lastAlignedmmap = (void*)((size_t) ptr + mparams.granularity);
+#if DEBUG && 0
+  printf("mmap returns %p size %u\n", ptr, (unsigned)size);
 #endif
   return ptr;
 }
@@ -1707,7 +1685,7 @@ static FORCEINLINE void* posix_direct_mmap(size_t size) {
 #endif
   ptr = mmap(0, size, MMAP_PROT, flags, fd, 0);
 #if DEBUG && 0
-  printf("mmap returns %p size %u\n", ptr, size);
+  printf("Direct mmap returns %p size %u\n", ptr, (unsigned)size);
 #endif
   return (ptr != 0)? ptr: MFAIL;
 }

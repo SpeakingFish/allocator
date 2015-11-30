@@ -49,6 +49,8 @@ DEALINGS IN THE SOFTWARE.
 #ifndef UNICODE
 #define UNICODE					/* Turn on windows unicode support */
 #endif
+#else
+#include <stdio.h>
 #endif
 
 /*#define NEDMALLOC_DEBUG 1*/
@@ -77,16 +79,22 @@ DEALINGS IN THE SOFTWARE.
 #include <errno.h>
 #if defined(_WINDOWS)
  #include <malloc.h>
-#endif
-#ifdef __linux__
-/* Sadly we can't include <malloc.h> as it causes a redefinition error */
+#else
 #if defined(__cplusplus)
 extern "C"
 #else
 extern
 #endif
+#if defined(__linux__) || defined(__FreeBSD__)
+/* Sadly we can't include <malloc.h> as it causes a redefinition error */
 size_t malloc_usable_size(void *);
+#elif defined(__APPLE__)
+size_t malloc_size(const void *ptr);
+#else
+#error Do not know what to do here
 #endif
+#endif
+
 #if USE_ALLOCATOR==1
  #define MSPACES 1
  #define ONLY_MSPACES 1
@@ -104,6 +112,13 @@ size_t malloc_usable_size(void *);
  #endif
 #endif
 /* We need to consistently define DEBUG=0|1, _DEBUG and NDEBUG for dlmalloc */
+#if !defined(DEBUG) && !defined(NDEBUG)
+ #ifdef __GNUC__
+  #warning DEBUG may not be defined but without NDEBUG being defined allocator will run with assert checking! Define NDEBUG to run at full speed.
+ #elif defined(_MSC_VER)
+  #pragma message(__FILE__ ": WARNING: DEBUG may not be defined but without NDEBUG being defined allocator will run with assert checking! Define NDEBUG to run at full speed.")
+ #endif
+#endif
 #undef DEBUG
 #undef _DEBUG
 #if NEDMALLOC_DEBUG
@@ -153,12 +168,6 @@ extern void *userpage_realloc(void *mem, size_t oldsize, size_t newsize, int fla
 #include "malloc.c.h"
 #ifdef NDEBUG               /* Disable assert checking on release builds */
  #undef DEBUG
-#elif !NEDMALLOC_DEBUG
- #ifdef __GNUC__
-  #warning DEBUG is defined so allocator will run with assert checking! Define NDEBUG to run at full speed.
- #elif defined(_MSC_VER)
-  #pragma message(__FILE__ ": WARNING: DEBUG is defined so allocator will run with assert checking! Define NDEBUG to run at full speed.")
- #endif
 #endif
 
 /* The default number of threads allowed into a pool at once */
@@ -295,11 +304,11 @@ size_t (*sysblksize)(void *)=
 #if defined(_MSC_VER) || defined(__MINGW32__)
 	/* This is the MSVCRT equivalent */
 	_msize;
-#elif defined(__linux__)
-	/* This is the glibc/ptmalloc2/dlmalloc equivalent.  */
+#elif defined(__linux__) || defined(__FreeBSD__)
+	/* This is the glibc/ptmalloc2/dlmalloc/BSD equivalent.  */
 	malloc_usable_size;
-#elif defined(__FreeBSD__) || defined(__APPLE__)
-	/* This is the BSD libc equivalent.  */
+#elif defined(__APPLE__)
+	/* This is the Apple BSD libc equivalent.  */
 	malloc_size;
 #else
 #error Cannot tolerate the memory allocator of an unknown system!
@@ -319,7 +328,11 @@ static FORCEINLINE NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void *CallMalloc(void *
 #if USE_MAGIC_HEADERS
 	size_t _alignment=alignment;
 	size_t *_ret=0;
-	size+=alignment+3*sizeof(size_t);
+	size_t bytes=size+alignment+3*sizeof(size_t);
+	/* Avoid addition overflow. */
+	if(bytes<size)
+		return 0;
+	size=bytes;
 	_alignment=0;
 #endif
 #if USE_ALLOCATOR==0
@@ -803,19 +816,19 @@ static DWORD64 __stdcall GetModBase(HANDLE hProcess, DWORD64 dwAddr) THROWSPEC
 	DWORD64 modulebase;
 	// Try to get the module base if already loaded, otherwise load the module
 	modulebase=SymGetModuleBase64(hProcess, dwAddr);
-    if(modulebase)
-        return modulebase;
-    else
-    {
-        MEMORY_BASIC_INFORMATION stMBI ;
-        if ( 0 != VirtualQueryEx ( hProcess, (LPCVOID)(size_t)dwAddr, &stMBI, sizeof(stMBI)))
-        {
+	if(modulebase)
+		return modulebase;
+	else
+	{
+		MEMORY_BASIC_INFORMATION stMBI ;
+		if ( 0 != VirtualQueryEx ( hProcess, (LPCVOID)(size_t)dwAddr, &stMBI, sizeof(stMBI)))
+		{
 			int n;
-            DWORD dwPathLen=0, dwNameLen=0 ;
-            TCHAR szFile[ MAX_PATH ], szModuleName[ MAX_PATH ] ;
+			DWORD dwPathLen=0, dwNameLen=0 ;
+			TCHAR szFile[ MAX_PATH ], szModuleName[ MAX_PATH ] ;
 			MODULEINFO mi={0};
-            dwPathLen = GetModuleFileName ( (HMODULE) stMBI.AllocationBase , szFile, MAX_PATH );
-            dwNameLen = GetModuleBaseName (hProcess, (HMODULE) stMBI.AllocationBase , szModuleName, MAX_PATH );
+			dwPathLen = GetModuleFileName ( (HMODULE) stMBI.AllocationBase , szFile, MAX_PATH );
+			dwNameLen = GetModuleBaseName (hProcess, (HMODULE) stMBI.AllocationBase , szModuleName, MAX_PATH );
 			for(n=dwNameLen; n>0; n--)
 			{
 				if(szModuleName[n]=='.')
@@ -836,36 +849,27 @@ static DWORD64 __stdcall GetModBase(HANDLE hProcess, DWORD64 dwAddr) THROWSPEC
 			//fxmessage("%s, %p, %x, %x\n", szFile, mi.lpBaseOfDll, mi.SizeOfImage, (DWORD) mi.lpBaseOfDll+mi.SizeOfImage);
 			modulebase=SymGetModuleBase64(hProcess, dwAddr);
 			return modulebase;
-        }
-    }
-    return 0;
-}
-
-static HANDLE myprocess;
-static void DeinitSym(void) THROWSPEC
-{
-	if(myprocess)
-	{
-		SymCleanup(myprocess);
-		CloseHandle(myprocess);
-		myprocess=0;
+		}
 	}
+	return 0;
 }
 
+extern HANDLE sym_myprocess;
+extern VOID (WINAPI *RtlCaptureContextAddr)(PCONTEXT);
+extern void DeinitSym(void) THROWSPEC;
 static void DoStackWalk(logentry *p) THROWSPEC
 {
 	int i,i2;
 	HANDLE mythread=(HANDLE) GetCurrentThread();
 	STACKFRAME64 sf={ 0 };
 	CONTEXT ct={ 0 };
-	static VOID (WINAPI *RtlCaptureContextAddr)(PCONTEXT)=(VOID (WINAPI *)(PCONTEXT)) -1;
-	if(!myprocess)
+	if(!sym_myprocess)
 	{
 		DWORD symopts;
-		DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &myprocess, 0, FALSE, DUPLICATE_SAME_ACCESS);
+		DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), GetCurrentProcess(), &sym_myprocess, 0, FALSE, DUPLICATE_SAME_ACCESS);
 		symopts=SymGetOptions();
 		SymSetOptions(symopts /*| SYMOPT_DEFERRED_LOADS*/ | SYMOPT_LOAD_LINES);
-		SymInitialize(myprocess, NULL, TRUE);
+		SymInitialize(sym_myprocess, NULL, TRUE);
 		atexit(DeinitSym);
 	}
 	ct.ContextFlags=CONTEXT_FULL;
@@ -910,7 +914,7 @@ static void DoStackWalk(logentry *p) THROWSPEC
 #else
 			IMAGE_FILE_MACHINE_AMD64,
 #endif
-			myprocess, mythread, &sf, &ct, NULL, SymFunctionTableAccess64, GetModBase, NULL))
+			sym_myprocess, mythread, &sf, &ct, NULL, SymFunctionTableAccess64, GetModBase, NULL))
 			break;
 		if(0==sf.AddrPC.Offset)
 			break;
@@ -919,7 +923,7 @@ static void DoStackWalk(logentry *p) THROWSPEC
 		{
 			DWORD lineoffset=0;
 			p->stack[i-1].pc=(void *)(size_t) sf.AddrPC.Offset;
-			if(SymGetModuleInfo64(myprocess, sf.AddrPC.Offset, &ihm))
+			if(SymGetModuleInfo64(sym_myprocess, sf.AddrPC.Offset, &ihm))
 			{
 				char *leaf;
 				leaf=strrchr(ihm.ImageName, '\\');
@@ -934,7 +938,7 @@ static void DoStackWalk(logentry *p) THROWSPEC
 			ihs->Address=sf.AddrPC.Offset;
 			ihs->MaxNameLength=MAX_PATH;
 
-			if(SymGetSymFromAddr64(myprocess, sf.AddrPC.Offset, &offset, ihs))
+			if(SymGetSymFromAddr64(sym_myprocess, sf.AddrPC.Offset, &offset, ihs))
 			{
 				COPY_STRING(p->stack[i-1].functname, ihs->Name, sizeof(p->stack[i-1].functname));
 				if(strlen(p->stack[i-1].functname)<sizeof(p->stack[i-1].functname)-8)
@@ -944,7 +948,7 @@ static void DoStackWalk(logentry *p) THROWSPEC
 			}
 			else
 				strcpy(p->stack[i-1].functname, "<unknown>");
-			if(SymGetLineFromAddr64(myprocess, sf.AddrPC.Offset, &lineoffset, &ihl))
+			if(SymGetLineFromAddr64(sym_myprocess, sf.AddrPC.Offset, &lineoffset, &ihl))
 			{
 				char *leaf;
 				p->stack[i-1].lineno=ihl.LineNumber;
@@ -1600,7 +1604,10 @@ static NOINLINE mstate FindMSpace(nedpool *RESTRICT p, threadcache *RESTRICT tc,
 		}
 		/* We really want to make sure this goes into memory now but we
 		have to be careful of breaking aliasing rules, so write it twice */
-		*((volatile struct malloc_state **) &p->m[end])=p->m[end]=temp;
+		{
+			volatile struct malloc_state **_m=(volatile struct malloc_state **) &p->m[end];
+			*_m=(p->m[end]=temp);
+		}
 		ACQUIRE_LOCK(&p->m[end]->mutex);
 		/*printf("Created mspace idx %d\n", end);*/
 		RELEASE_LOCK(&p->mutex);
@@ -2019,7 +2026,7 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc2(nedpool *p, void *mem,
 			if((flags & M2_ZERO_MEMORY) && size>memsize)
 				memset((void *)((size_t)ret+memsize), 0, size-memsize);
 			LogOperation(tc, p, LOGENTRY_THREADCACHE_MALLOC, mymspace, size, mem, alignment, flags, ret);
-			if(memsize>=sizeof(threadcacheblk) && memsize<=(THREADCACHEMAX+CHUNK_OVERHEAD))
+			if(!isforeign && memsize>=sizeof(threadcacheblk) && memsize<=(THREADCACHEMAX+CHUNK_OVERHEAD))
 			{
 				threadcache_free(p, tc, mymspace, mem, memsize, isforeign);
 				LogOperation(tc, p, LOGENTRY_THREADCACHE_FREE, mymspace, memsize, mem, 0, 0, 0);
@@ -2089,7 +2096,7 @@ NEDMALLOCNOALIASATTR void   nedpfree2(nedpool *p, void *mem, unsigned flags) THR
 	}
 #endif
 #if THREADCACHEMAX
-	if(mem && tc && memsize>=sizeof(threadcacheblk) && memsize<=(THREADCACHEMAX+CHUNK_OVERHEAD))
+	if(mem && tc && !isforeign && memsize>=sizeof(threadcacheblk) && memsize<=(THREADCACHEMAX+CHUNK_OVERHEAD))
 	{
 		threadcache_free(p, tc, mymspace, mem, memsize, isforeign);
 		LogOperation(tc, p, LOGENTRY_THREADCACHE_FREE, mymspace, memsize, mem, 0, 0, 0);
@@ -2109,8 +2116,12 @@ NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpmalloc(nedpool *p, size_t size)
 }
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedpcalloc(nedpool *p, size_t no, size_t size) THROWSPEC
 {
-	unsigned flags=NEDMALLOC_FORCERESERVE(p, 0, no*size);
-	return nedpmalloc2(p, size*no, 0, M2_ZERO_MEMORY|flags);
+	size_t bytes=no*size;
+	/* Avoid multiplication overflow. */
+	if(size && no!=bytes/size)
+		return 0;
+	unsigned flags=NEDMALLOC_FORCERESERVE(p, 0, bytes);
+	return nedpmalloc2(p, bytes, 0, M2_ZERO_MEMORY|flags);
 }
 NEDMALLOCNOALIASATTR NEDMALLOCPTRATTR void * nedprealloc(nedpool *p, void *mem, size_t size) THROWSPEC
 {
