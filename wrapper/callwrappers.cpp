@@ -1,68 +1,75 @@
 #include "callwrappers.h"
 
 #ifdef BUILD_ALLOCATOR_LIB
-#include "nedmalloc/nedmalloc.h"
+#include <memory>
+#include "callwrappers-hoard.h"
+#include "callwrappers-nedmalloc.h"
 #endif
 
 #include "allocatorapi.h"
 
-enum AllocatorMode
-{
-	AllocatorNotInitialized,
-	NoCustomAllocator,
-	AllocatorNed,
-	AllocatorHoard,
-};
-
-static AllocatorMode s_allocatorMode = AllocatorNotInitialized;
-static AllocatorCrashCallback s_crashCallback = NULL;
-static void* s_crashBuffer = NULL;
-static const size_t s_crashBufferSize = 4 * 1024 * 1024;
-static const size_t s_invalidCrashBufferOffset = (size_t)(-1);
-static size_t s_crashBufferOffset = s_invalidCrashBufferOffset;
-CRITICAL_SECTION s_crashCriticalSection;
-
 #pragma warning(disable: 4996) // "This function or variable may be unsafe"
 
-static const size_t bufferSize = 32767;
+static const size_t s_bufferSize = 32767;
 
-
-bool initCallWrappers()
+AllocatorMode getAllocatorMode()
 {
+	static AllocatorMode s_allocatorMode = AllocatorNotInitialized;
 	if (s_allocatorMode == AllocatorNotInitialized)
 	{
 		s_allocatorMode = AllocatorNed;
 
-		size_t getenvReturnValue;
-		const size_t getenvBufferSize = 128;
-		char getenvBuffer[getenvBufferSize];
 		const char* allocatorModeEnvName = "ALLOCATOR_MODE";
-		wrapper_getenv_s(&getenvReturnValue, getenvBuffer, getenvBufferSize - 1, allocatorModeEnvName);
+		char* getenvBuffer = wrapper_getenv(allocatorModeEnvName);
 
-		if (strcmp("system", getenvBuffer))
-		{
-			s_allocatorMode = NoCustomAllocator;
-		}
-		else if (strcmp("ned", getenvBuffer))
+		if (getenvBuffer == NULL || strcmp("ned", getenvBuffer) == 0)
 		{
 			s_allocatorMode = AllocatorNed;
 		}
-		else if (strcmp("hoard", getenvBuffer))
+		else if (strcmp("system", getenvBuffer) == 0)
+		{
+			s_allocatorMode = NoCustomAllocator;
+		}
+		else if (strcmp("hoard", getenvBuffer) == 0)
 		{
 			s_allocatorMode = AllocatorHoard;
 		}
 	}
 
+	return s_allocatorMode;
+}
+
+#ifdef BUILD_ALLOCATOR_LIB
+
+static AllocatorFunctions s_allocatorFunctions = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static AllocatorCrashCallback s_crashCallback = NULL;
+static void* s_crashBuffer = NULL;
+static const size_t s_crashBufferSize = 4 * 1024 * 1024;
+static const size_t s_invalidCrashBufferOffset = (size_t)(-1);
+static size_t s_crashBufferOffset = s_invalidCrashBufferOffset;
+std::auto_ptr<CRITICAL_SECTION> s_crashCriticalSection;
+
+void initCallWrappers()
+{
+	if (getAllocatorMode() == AllocatorNed)
+	{
+		s_allocatorFunctions = nedmallocAllocatorFunctions();
+	}
+	else if (getAllocatorMode() == AllocatorHoard)
+	{
+		s_allocatorFunctions = hoardAllocatorFunctions();
+	}
+
 #ifdef LEAK_CHECK
 	initLeakCheck();
 #endif
-
-	return s_allocatorMode == AllocatorNed || s_allocatorMode == AllocatorHoard;
 }
+
+#endif
 
 char* wrapper_getenv(const char* str)
 {
-	static char buffer[bufferSize];
+	static char buffer[s_bufferSize];
 	*buffer = 0;
 	if (0 == GetEnvironmentVariableA(str, buffer, _countof(buffer) - 1))
 	{
@@ -73,7 +80,7 @@ char* wrapper_getenv(const char* str)
 
 WCHAR* wrapper_wgetenv(const WCHAR* str)
 {
-	static WCHAR buffer[bufferSize];
+	static WCHAR buffer[s_bufferSize];
 	*buffer = 0;
 	if (0 == GetEnvironmentVariableW(str, buffer, _countof(buffer) - 1))
 	{
@@ -84,7 +91,7 @@ WCHAR* wrapper_wgetenv(const WCHAR* str)
 
 int wrapper_getenv_s(size_t* pReturnValue, char* buffer, size_t numberOfElements, const char* varname)
 {
-	char buf[bufferSize];
+	char buf[s_bufferSize];
 
 	// obtain the required size not including trailing '\0'
 	*pReturnValue = GetEnvironmentVariableA(varname, buf, _countof(buf) - 1);
@@ -116,7 +123,7 @@ int wrapper_getenv_s(size_t* pReturnValue, char* buffer, size_t numberOfElements
 // see comments for wrapper_getenv_s()
 int wrapper_wgetenv_s(size_t* pReturnValue, WCHAR* buffer, size_t numberOfElements, const WCHAR* varname)
 {
-	WCHAR buf[bufferSize];
+	WCHAR buf[s_bufferSize];
 	*pReturnValue = GetEnvironmentVariableW(varname, buf, _countof(buf) - 1);
 
 	if (0 == *pReturnValue)
@@ -142,8 +149,8 @@ int wrapper_putenv(const char* str)
 	const char* eqpos = strchr(str, '=');
 	if (eqpos != NULL)
 	{
-		char first[bufferSize];
-		char second[bufferSize];
+		char first[s_bufferSize];
+		char second[s_bufferSize];
 		const ptrdiff_t namelen = (size_t)eqpos - (size_t)str;
 		strncpy(first, str, namelen);
 		first[namelen] = '\0';
@@ -161,8 +168,8 @@ int wrapper_wputenv(WCHAR* str)
 	WCHAR* eqpos = wcschr(str, '=');
 	if (eqpos != NULL)
 	{
-		WCHAR first[bufferSize];
-		WCHAR second[bufferSize];
+		WCHAR first[s_bufferSize];
+		WCHAR second[s_bufferSize];
 		const ptrdiff_t namelen = (size_t)eqpos - (size_t)str;
 		wcsncpy(first, str, namelen);
 		first[namelen] = '\0';
@@ -209,11 +216,15 @@ private:
 #ifdef ALLOCATOR_USE_CALLBACKS
 void registerCrashCalback(AllocatorCrashCallback callback)
 {
-	InitializeCriticalSection(&s_crashCriticalSection);
-	CriticalSectionGuard guard(&s_crashCriticalSection);
+	if (getAllocatorMode() != NoCustomAllocator)
+	{
+		s_crashCriticalSection.reset(new CRITICAL_SECTION);
+		InitializeCriticalSection(s_crashCriticalSection.get());
+		CriticalSectionGuard guard(s_crashCriticalSection.get());
 
-	s_crashCallback = callback;
-	s_crashBuffer = nedmalloc(s_crashBufferSize);
+		s_crashCallback = callback;
+		s_crashBuffer = s_allocatorFunctions.malloc(s_crashBufferSize);
+	}
 }
 #endif
 
@@ -225,7 +236,7 @@ inline void handleNoMemory(size_t requstedMemorySize)
 	AllocatorCrashData data;
 	if (s_crashCallback != NULL)
 	{
-		CriticalSectionGuard guard(&s_crashCriticalSection);
+		CriticalSectionGuard guard(s_crashCriticalSection.get());
 
 		data.mallinfo = allocatorMallInfo();
 		data.requstedMemorySize = requstedMemorySize;
@@ -242,7 +253,7 @@ inline bool isCrash()
 
 inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
 {
-	CriticalSectionGuard guard(&s_crashCriticalSection);
+	CriticalSectionGuard guard(s_crashCriticalSection.get());
 
 	const size_t rest = (s_crashBufferOffset + (size_t)s_crashBuffer) % align;
 	size_t offset = (rest == 0) ? 0 : (align - rest);
@@ -258,40 +269,63 @@ inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
 
 }
 
-void wrapper_process_attach_before_patch() 
+void wrapper_dllProcessAttach() 
 {
-	initCallWrappers();
-}
-
-void wrapper_process_attach_after_patch() 
-{
-}
-
-void wrapper_process_detach()
-{
-
-}
-
-void wrapper_thread_attach()
-{
-
-}
-
-void wrapper_thread_detach()
-{	
-	// Destroy the thread cache for all known pools
-	nedpool **pools = nedpoollist();
-	if(pools)
+	if (s_allocatorFunctions.dllProcessAttach != NULL)
 	{
-		nedpool **pool;
-		for(pool = pools; *pool; ++pool)
-		{
-			neddisablethreadcache(*pool);
-		}
-		nedfree(pools);
+		(*s_allocatorFunctions.dllProcessAttach)();
 	}
-	neddisablethreadcache(0);
 }
+
+void wrapper_dllProcessDetach()
+{
+	if (s_allocatorFunctions.dllProcessDetach != NULL)
+	{
+		(*s_allocatorFunctions.dllProcessDetach)();
+	}
+}
+
+void wrapper_dllThreadAttach()
+{
+	if (s_allocatorFunctions.dllThreadAttach != NULL)
+	{
+		(*s_allocatorFunctions.dllThreadAttach)();
+	}
+}
+
+void wrapper_dllThreadDetach()
+{	
+	if (s_allocatorFunctions.dllThreadDetach != NULL)
+	{
+		(*s_allocatorFunctions.dllThreadDetach)();
+	}
+}
+
+ALLOCATOR_EXPORT AllocatorMallInfo allocatorMallInfo(void)
+{
+	if (s_allocatorFunctions.allocatorMallInfo != NULL)
+	{
+		return (*s_allocatorFunctions.allocatorMallInfo)();
+	}
+
+	AllocatorMallInfo result;
+	memset(&result, 0, sizeof(AllocatorMallInfo));
+	return result;
+}
+
+#ifdef ALLOCATOR_USE_STATISTICS
+ALLOCATOR_EXPORT AllocatorStatistics allocatorStatistics(void)
+{
+	if (s_allocatorFunctions.allocatorStatistics != NULL)
+	{
+		return (*s_allocatorFunctions.allocatorStatistics)();
+	}
+
+	AllocatorStatistics result;
+	memset(&result, 0, sizeof(AllocatorStatistics));
+	return result;
+}
+#endif
 
 void* wrapper_malloc(size_t size)
 {
@@ -300,7 +334,7 @@ void* wrapper_malloc(size_t size)
 		return crashAlloc(size);
 	}
 
-	void* result = nedmalloc(size);
+	void* result = s_allocatorFunctions.malloc(size);
 	if (size > 0 && NULL == result)
 	{
 		handleNoMemory(size);
@@ -315,7 +349,7 @@ void wrapper_free(void* mem)
 		return;
 	}
 
-	nedfree(mem);
+	s_allocatorFunctions.free(mem);
 }
 
 void* wrapper_calloc(size_t num, size_t size)
@@ -327,7 +361,7 @@ void* wrapper_calloc(size_t num, size_t size)
 		return result;
 	}
 
-	void* result = nedcalloc(num, size);
+	void* result = s_allocatorFunctions.calloc(num, size);
 	if (num > 0 && size > 0 && NULL == result)
 	{
 		handleNoMemory(num * size);
@@ -352,7 +386,7 @@ void* wrapper_realloc(void* mem, size_t size)
 		return mem;
 	}
 
-	void* result = nedrealloc(mem, size);
+	void* result = s_allocatorFunctions.realloc(mem, size);
 	if (size > 0 && NULL == result)
 	{
 		handleNoMemory(size);
@@ -368,7 +402,7 @@ void* wrapper_memalign(size_t bytes, size_t alignment)
 	}
 
 	// NOTICE: Windows _aligned_malloc and NedMalloc nedmemalign has different function signature
-	void* result = nedmemalign(alignment, bytes);
+	void* result = s_allocatorFunctions.align(alignment, bytes);
 	if (bytes > 0 && NULL == result)
 	{
 		handleNoMemory(bytes);
@@ -390,7 +424,7 @@ void* wrapper_recalloc(void* mem, size_t num, size_t size)
 	}
 	else
 	{
-		result = nedrealloc(mem, bytes);
+		result = s_allocatorFunctions.realloc(mem, bytes);
 		if (bytes > 0 && NULL == result)
 		{
 			handleNoMemory(bytes);
@@ -410,72 +444,7 @@ size_t wrapper_memsize(void* mem)
 	{
 		return *((size_t*)((size_t)mem - sizeof(size_t)));
 	}
-	return nedmemsize(mem);
+	return s_allocatorFunctions.memsize(mem);
 }
-
-#ifdef ENABLE_USERMODEPAGEALLOCATOR
-#define DebugPrint printf
-#define USERPAGE_NOCOMMIT                  (M2_CUSTOM_FLAGS_BEGIN<<1)
-extern "C"
-{
-	extern void *userpage_malloc(size_t toallocate, unsigned flags);
-	extern int userpage_free(void *mem, size_t size);
-	extern void *userpage_realloc(void *mem, size_t oldsize, size_t newsize, int flags, unsigned flags2);
-	extern void *userpage_commit(void *mem, size_t size);
-	extern int userpage_release(void *mem, size_t size);
-}
-static LPVOID WINAPI VirtualAlloc_winned(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
-{
-	LPVOID ret=0;
-#if defined(_DEBUG)
-	DebugPrint("Winpatcher: VirtualAlloc(%p, %u, %x, %x) intercepted\n", lpAddress, dwSize, flAllocationType, flProtect);
-#endif
-	if(!lpAddress && flAllocationType&MEM_RESERVE)
-	{
-		ret=userpage_malloc(dwSize, (flAllocationType&MEM_COMMIT) ? 0 : USERPAGE_NOCOMMIT);
-#if defined(_DEBUG)
-		DebugPrint("Winpatcher: userpage_malloc returns %p\n", ret);
-#endif
-	}
-	else if(lpAddress && (flAllocationType&(MEM_COMMIT|MEM_RESERVE))==(MEM_COMMIT))
-	{
-		ret=userpage_commit(lpAddress, dwSize);
-#if defined(_DEBUG)
-		DebugPrint("Winpatcher: userpage_commit returns %p\n", ret);
-#endif
-	}
-	if(!ret || (void *)-1==ret)
-	{
-		ret=VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
-#if defined(_DEBUG)
-		DebugPrint("Winpatcher: VirtualAlloc returns %p\n", ret);
-#endif
-	}
-	return (void *)-1==ret ? 0 : ret;
-}
-static BOOL WINAPI VirtualFree_winned(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
-{
-#if defined(_DEBUG)
-	DebugPrint("Winpatcher: VirtualFree(%p, %u, %x) intercepted\n", lpAddress, dwSize, dwFreeType);
-#endif
-	if(dwFreeType==MEM_DECOMMIT)
-	{
-		if(-1!=userpage_release(lpAddress, dwSize)) return 1;
-	}
-	else if(dwFreeType==MEM_RELEASE)
-	{
-		if(-1!=userpage_free(lpAddress, dwSize)) return 1;
-	}
-	return VirtualFree(lpAddress, dwSize, dwFreeType);
-}
-static SIZE_T WINAPI VirtualQuery_winned(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwSize)
-{
-#if defined(_DEBUG)
-	DebugPrint("Winpatcher: VirtualQuery(%p, %p, %u) intercepted\n", lpAddress, lpBuffer, dwSize);
-#endif
-	return VirtualQuery(lpAddress, lpBuffer, dwSize);
-}
-
-#endif
 
 #endif

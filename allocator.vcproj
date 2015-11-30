@@ -4,6 +4,7 @@
 	Version="9.00"
 	Name="allocator"
 	ProjectGUID="{EC698E3F-A1CA-310A-BD14-1B668D707156}"
+	RootNamespace="allocator"
 	Keyword="Qt4VSv1.0"
 	TargetFrameworkVersion="131072"
 	>
@@ -49,7 +50,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-Zm200 -MP2 -w34100 -w34189 -w34100 -w34189"
 				Optimization="4"
-				AdditionalIncludeDirectories=".\export\include\;.\allocators\"
+				AdditionalIncludeDirectories=".\export\include\;.\allocators\;.\allocators\hoard-38\src\;.\allocators\hoard-38\src\heaplayers\;.\allocators\hoard-38\src\heaplayers\util\"
 				PreprocessorDefinitions="_WINDOWS;UNICODE;WIN32;DEBUG;BUILD_ALLOCATOR_LIB;NO_NED_NAMESPACE;ALLOCATOR_USE_STATISTICS;ALLOCATOR_USE_LEAKCHECK;ALLOCATOR_USE_CALLBACKS"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
@@ -146,7 +147,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-Zm200 -MP2 -w34100 -w34189 -w34100 -w34189"
 				Optimization="4"
-				AdditionalIncludeDirectories=".\export\include\;.\allocators\"
+				AdditionalIncludeDirectories=".\export\include\;.\allocators\;.\allocators\hoard-38\src\;.\allocators\hoard-38\src\heaplayers\;.\allocators\hoard-38\src\heaplayers\util\"
 				PreprocessorDefinitions="_WINDOWS;UNICODE;x64;DEBUG;BUILD_ALLOCATOR_LIB;NO_NED_NAMESPACE;ALLOCATOR_USE_STATISTICS;ALLOCATOR_USE_LEAKCHECK;ALLOCATOR_USE_CALLBACKS"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
@@ -243,7 +244,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories=".\export\include\;.\allocators\"
+				AdditionalIncludeDirectories=".\export\include\;.\allocators\;.\allocators\hoard-38\src\;.\allocators\hoard-38\src\heaplayers\;.\allocators\hoard-38\src\heaplayers\util\"
 				PreprocessorDefinitions="NDEBUG;_WINDOWS;UNICODE;WIN32;BUILD_ALLOCATOR_LIB;NO_NED_NAMESPACE;ALLOCATOR_USE_STATISTICS;ALLOCATOR_USE_LEAKCHECK;ALLOCATOR_USE_CALLBACKS"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
@@ -341,7 +342,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="2"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories=".\export\include\;.\allocators\"
+				AdditionalIncludeDirectories=".\export\include\;.\allocators\;.\allocators\hoard-38\src\;.\allocators\hoard-38\src\heaplayers\;.\allocators\hoard-38\src\heaplayers\util\"
 				PreprocessorDefinitions="NDEBUG;_WINDOWS;UNICODE;x64;BUILD_ALLOCATOR_LIB;NO_NED_NAMESPACE;ALLOCATOR_USE_STATISTICS;ALLOCATOR_USE_LEAKCHECK;ALLOCATOR_USE_CALLBACKS"
 				GeneratePreprocessedFile="0"
 				ExceptionHandling="1"
@@ -413,15 +414,27 @@
 			Name="Wrapper"
 			>
 			<File
-				RelativePath=".\wrapper\allocatorapi.cpp"
-				>
-			</File>
-			<File
 				RelativePath=".\export\include\allocatorapi.h"
 				>
 			</File>
 			<File
 				RelativePath=".\export\include\allocatordefs.h"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\callwrappers-hoard.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\callwrappers-hoard.h"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\callwrappers-nedmalloc.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\wrapper\callwrappers-nedmalloc.h"
 				>
 			</File>
 			<File

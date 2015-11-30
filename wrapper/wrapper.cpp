@@ -7,16 +7,14 @@
 
 #pragma inline_depth(255)
 
-void (*winnedMemcpyPtr)(void* dest, const void* src, size_t count);
-void (*winnedMemsetPtr)(void* dest, int c, size_t count);
+void (*memcpyPtr)(void* dest, const void* src, size_t count);
+void (*memsetPtr)(void* dest, int c, size_t count);
 
 #ifdef DEBUG
 	LPCWSTR rlsCRTLibraryName[] = {L"MSVCR71D.DLL", L"MSVCR80D.DLL", L"MSVCR90D.DLL", L"MSVCR100D.DLL", L"KERNEL32.DLL"};
 #else
 	LPCWSTR rlsCRTLibraryName[] = {L"MSVCR71.DLL", L"MSVCR80.DLL", L"MSVCR90.DLL", L"MSVCR100.DLL", L"KERNEL32.DLL"};
 #endif
-
-#include "nedmalloc/nedmalloc.h"
 
 #include "callwrappers.h"
 
@@ -67,14 +65,14 @@ static void patchIt(Patch* patch)
 	VirtualProtect(mbiThunk.BaseAddress, mbiThunk.RegionSize, PAGE_EXECUTE_READWRITE, &mbiThunk.Protect);
 
 	// back up
-	(*winnedMemcpyPtr)(patch->codebytes, patch->original, sizeof(patch->codebytes));
+	(*memcpyPtr)(patch->codebytes, patch->original, sizeof(patch->codebytes));
 
 	// patch
 	unsigned char* patchLocation = (unsigned char*)patch->original;
 	CodeBlock* block = (CodeBlock*)arr;
 	block->addressLow = (unsigned int)((size_t)patch->replacement & 0xffffffffu);
 	block->addressHigh = (unsigned int)(((size_t)patch->replacement & 0xffffffff00000000u) >> 32);
-	(*winnedMemcpyPtr)(patchLocation, block, sizeof(CodeBlock));
+	(*memcpyPtr)(patchLocation, block, sizeof(CodeBlock));
 
 	// Reset CRT library code to original page protection.
 	VirtualProtect(mbiThunk.BaseAddress, mbiThunk.RegionSize, mbiThunk.Protect, &mbiThunk.Protect);
@@ -102,7 +100,7 @@ static void patchIt(Patch* patch)
 	VirtualProtect(mbiThunk.BaseAddress, mbiThunk.RegionSize, PAGE_EXECUTE_READWRITE, &mbiThunk.Protect);
 
 	// back up
-	(*winnedMemcpyPtr)(patch->codebytes, patch->original, sizeof(patch->codebytes));
+	(*memcpyPtr)(patch->codebytes, patch->original, sizeof(patch->codebytes));
 
 	// patch
 	unsigned char *patchLocation = (unsigned char*)patch->original;
@@ -225,8 +223,8 @@ static bool patchMeIn(void)
 		// assign function pointers for required CRT support functions
 		if (defCRTLibrary)
 		{
-			winnedMemcpyPtr = (void(*)(void*, const void*, size_t))GetProcAddress(defCRTLibrary, "memcpy");
-			winnedMemsetPtr = (void(*)(void*, int, size_t))GetProcAddress(defCRTLibrary, "memset");
+			memcpyPtr = (void(*)(void*, const void*, size_t))GetProcAddress(defCRTLibrary, "memcpy");
+			memsetPtr = (void(*)(void*, int, size_t))GetProcAddress(defCRTLibrary, "memset");
 		}
 
 		// patch all relevant Release CRT Library entry points
@@ -253,31 +251,34 @@ extern "C"
 		hinstDLL;
 		lpreserved;
 
-#ifdef ENABLE_USERMODEPAGEALLOCATOR
-		if(DLL_PROCESS_ATTACH == fdwReason)
+		if (getAllocatorMode() == NoCustomAllocator)
 		{
-			__security_init_cookie();	// For /GS compiler option support
+			return TRUE;
 		}
-#endif
+
+		if (getAllocatorMode() == AllocatorNotInitialized)
+		{
+			exit(1);
+		}
 
 		switch (fdwReason)
 		{
 			case DLL_PROCESS_ATTACH:
-				wrapper_process_attach_before_patch();
+				initCallWrappers();
 				patchMeIn();
-				wrapper_process_attach_after_patch();
+				wrapper_dllProcessAttach();
 				break;
 
 			case DLL_PROCESS_DETACH:
-				wrapper_process_detach();
+				wrapper_dllProcessDetach();
 				break;
 
 			case DLL_THREAD_ATTACH:
-				wrapper_thread_attach();
+				wrapper_dllThreadAttach();
 				break;
 
 			case DLL_THREAD_DETACH:
-				wrapper_thread_detach();
+				wrapper_dllThreadDetach();
 				break;
 		}
 		return TRUE;

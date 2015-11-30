@@ -11,11 +11,6 @@ extern "C"
 		char* filename;
 		char* allowedFilenames;
 
-		if (!initCallWrappers())
-		{
-			return;
-		}
-
 		// get current process file name
 		{
 			// we may be use buffer[0] for filename comparison later
@@ -34,7 +29,7 @@ extern "C"
 
 		// get allowed exe filenames
 		{
-			allowedFilenames = wrapper_getenv("NEDMALLOC_HOOKED_EXE_NAMES");
+			allowedFilenames = wrapper_getenv("ALLOCATOR_HOOKED_EXE_NAMES");
 			if (allowedFilenames == NULL)
 			{
 				return;
@@ -60,7 +55,7 @@ extern "C"
 			}
 		}
 
-		LoadLibraryA("nedmalloc.dll");
+		LoadLibraryA("allocator.dll");
 
 		return;
 	}
@@ -69,6 +64,16 @@ extern "C"
 	{
 		hinstDLL;
 		lpreserved;
+
+		if (getAllocatorMode() == NoCustomAllocator)
+		{
+			return FALSE;
+		}
+
+		if (getAllocatorMode() == AllocatorNotInitialized)
+		{
+			exit(1);
+		}
 
 		if (DLL_PROCESS_ATTACH == fdwReason)
 		{

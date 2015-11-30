@@ -369,6 +369,7 @@ extern "C" void * MYCDECL CUSTOM_RECALLOC (void * p, size_t num, size_t sz)
   return ptr;
 }
 
+/* // DPischenko. This functions are unneded.
 #if defined(_WIN32)
 
 /////// Other replacement functions that call malloc.
@@ -412,3 +413,4 @@ int CUSTOM_PUTENV(char * str) {
 }
 
 #endif
+*/

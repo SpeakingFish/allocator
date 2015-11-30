@@ -71,6 +71,7 @@ public:
 
   static void setConcurrency (int n) {
 #if defined(_WIN32)
+    n;
 #elif defined(__SVR4)
     thr_setconcurrency (n);
 #else

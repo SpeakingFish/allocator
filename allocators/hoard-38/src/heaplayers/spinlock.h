@@ -68,7 +68,9 @@ extern "C" unsigned long MyInterlockedExchange (unsigned long * oldval,
 #endif
 
 #if defined(_WIN32) && !defined(_WIN64)
-#define _WIN32_WINNT 0x0500
+#ifndef _WIN32_WINNT
+	#define _WIN32_WINNT 0x0500
+#endif
 
 // NOTE: Below is the new "pause" instruction, which is inocuous for
 // previous architectures, but crucial for Intel chips with
