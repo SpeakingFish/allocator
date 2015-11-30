@@ -1,6 +1,9 @@
 #include "callwrappers.h"
 
+#ifdef BUILD_ALLOCATOR_LIB
 #include "nedmalloc/nedmalloc.h"
+#endif
+
 #include "allocatorapi.h"
 
 enum AllocatorMode
@@ -62,21 +65,6 @@ bool initCallWrappers()
 #endif
 
 	return s_allocatorMode == AllocatorNed || s_allocatorMode == AllocatorHoard;
-}
-
-void wrapper_process_detach()
-{	// Destroy the thread cache for all known pools
-	nedpool **pools = nedpoollist();
-	if(pools)
-	{
-		nedpool **pool;
-		for(pool = pools; *pool; ++pool)
-		{
-			neddisablethreadcache(*pool);
-		}
-		nedfree(pools);
-	}
-	neddisablethreadcache(0);
 }
 
 char* wrapper_getenv(const char* str)
@@ -206,6 +194,8 @@ int wrapper_wputenv_s(WCHAR* name, WCHAR* value)
 	return 0;
 } 
 
+#ifdef BUILD_ALLOCATOR_LIB
+
 class CriticalSectionGuard
 {
 public:
@@ -273,6 +263,21 @@ inline void* crashAlloc(size_t bytes, size_t align = MALLOC_ALIGNMENT)
 	return result;
 }
 
+}
+
+void wrapper_process_detach()
+{	// Destroy the thread cache for all known pools
+	nedpool **pools = nedpoollist();
+	if(pools)
+	{
+		nedpool **pool;
+		for(pool = pools; *pool; ++pool)
+		{
+			neddisablethreadcache(*pool);
+		}
+		nedfree(pools);
+	}
+	neddisablethreadcache(0);
 }
 
 void* wrapper_malloc(size_t size)
@@ -394,3 +399,5 @@ size_t wrapper_memsize(void* mem)
 	}
 	return nedmemsize(mem);
 }
+
+#endif

@@ -2,6 +2,10 @@
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "allocator", "allocator.vcproj", "{EC698E3F-A1CA-310A-BD14-1B668D707156}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "app-init-allocator", "app-init-allocator\app-init-allocator.vcproj", "{94F115C4-B6D2-4C6E-832E-4999C50D79DB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EC698E3F-A1CA-310A-BD14-1B668D707156} = {EC698E3F-A1CA-310A-BD14-1B668D707156}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +23,14 @@ Global
 		{EC698E3F-A1CA-310A-BD14-1B668D707156}.Release|Win32.Build.0 = Release|Win32
 		{EC698E3F-A1CA-310A-BD14-1B668D707156}.Release|x64.ActiveCfg = Release|x64
 		{EC698E3F-A1CA-310A-BD14-1B668D707156}.Release|x64.Build.0 = Release|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|Win32.Build.0 = Debug|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|x64.ActiveCfg = Debug|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Debug|x64.Build.0 = Debug|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|Win32.ActiveCfg = Release|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|Win32.Build.0 = Release|Win32
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|x64.ActiveCfg = Release|x64
+		{94F115C4-B6D2-4C6E-832E-4999C50D79DB}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

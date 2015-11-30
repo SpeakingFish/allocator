@@ -15,6 +15,8 @@ int    wrapper_wputenv(WCHAR * str);
 int    wrapper_putenv_s(const char* name, const char* value);
 int    wrapper_wputenv_s(WCHAR * name, WCHAR * value);
 
+#ifdef BUILD_ALLOCATOR_LIB
+
 void*  wrapper_malloc(size_t size);
 void   wrapper_free(void* mem);
 void*  wrapper_calloc(size_t no, size_t size);
@@ -22,3 +24,5 @@ void*  wrapper_realloc(void* mem, size_t size);
 void*  wrapper_memalign(size_t bytes, size_t alignment);
 void*  wrapper_recalloc(void* mem, size_t num, size_t size);
 size_t wrapper_memsize(void* mem);
+
+#endif

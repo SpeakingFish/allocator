@@ -1,6 +1,7 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by allocator.rc
+//
 
 // Next default values for new objects
 // 
